@@ -3,19 +3,13 @@
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Loading necessary libraries
-# library(MASS)
-# library(sandwich)
-# library(lmtest)
-# library(Formula)
-# library(stargazer)
-
 library(bestNormalize)
 library(dplyr)
 library(GGally)
 library(ggplot2)
 library(plm)
 
-data <- read.csv("data_no_missings.csv", header = T, sep = ";")
+data <- read.csv("Data/data_no_missings.csv", header = T, sep = ";")
 
 # needed ?
 data$X <- NULL
@@ -98,128 +92,6 @@ ggplot(data) +
 
 # It is suggested to take it into log!
 # However, we thought about putting it into interval as in your work
-
-
-
-# Repetition -----------------------------------------------
-
-# Choose vars, without RnD_expenditure and Urbanization_rate
-df <- data %>%
-  select(Country, Year, Homicide, Inequality, GDP_per_capita,
-         Lower_secondary_completion_rate, School_enrollment, 
-         Unemployment, Unsentenced, Police) %>%
-  filter(Year %in% 2003:2015)
-
-
-## Data transformation --------------------------------------
-
-# Note: 0.1 is not truly repetition (probably)
-
-# Homicide
-bestNormalize::boxcox(df$Homicide + 0.1)$lambda
-
-df$ln_Homicide <- log(df$Homicide + 0.1)
-
-# GDP per capita
-bestNormalize::boxcox(df$GDP_per_capita)$lambda
-
-df$ln_GDP_per_capita <- log(df$GDP_per_capita)
-
-# Unemployment
-df$Unemployment_int <- cut(df$Unemployment,
-                           breaks = c(0,5.5,8.5,Inf),
-                           labels = c("low", "medium","high"))
-
-table(df$Unemployment_int)
-# Different frequency! :O 
-
-
-library(corrplot)
-
-correlations <- df %>%
-  select(ln_Homicide, Inequality, ln_GDP_per_capita,
-         Lower_secondary_completion_rate, School_enrollment, 
-         Unemployment, Unsentenced, Police) %>%
-  cor(use = "pairwise.complete.obs", method = c("pearson"))
-
-corrplot.mixed(correlations,
-               upper = "number",
-               lower = "circle",
-               tl.col= "black",
-               tl.pos = "lt")
-
-# quite different, but more or less the same coefficients
-
-
-### Model --------------------------------------------
-
-# fixed effects model
-fixed <- plm(ln_Homicide ~ Inequality + ln_GDP_per_capita +
-             Lower_secondary_completion_rate + School_enrollment + 
-             Unemployment_int + Unsentenced + Police,
-             data = df, 
-             index=c("Country", "Year"),
-             model="within")
-
-summary(fixed)
-
-# fixed, individual effects
-fixef(fixed)
-
-# random effects model
-random <- plm(ln_Homicide ~ Inequality + ln_GDP_per_capita +
-               Lower_secondary_completion_rate + School_enrollment + 
-               Unemployment_int + Unsentenced + Police,
-             data = df, 
-             index=c("Country", "Year"),
-             model="random")
-
-summary(random)
-
-# POLS
-pols <- plm(ln_Homicide ~ Inequality + ln_GDP_per_capita +
-              Lower_secondary_completion_rate + School_enrollment + 
-              Unemployment_int + Unsentenced + Police,
-            data = df,
-            index=c("Country", "Year"),
-            model="pooling")
-
-# F test for individual effects for fixed model
-pFtest(fixed, pols) 
-# (checking whether fixed model is necessary at all;
-# When we reject the null, it means that individual effects are significant)
-
-# and individual effects for random effects
-plmtest(pols, type=c("bp"))
-# aslso effects are significant
-
-# Testing for cross-sectional dependence/contemporaneous correlation:
-# using Breusch-Pagan LM test of independence and Pasaran CD test
-pcdtest(fixed, test = c("lm"))
-pcdtest(fixed, test = c("cd"))
-# we reject the null -> we have a cross sectional correlation
-
-# Testing for serial correlation for fixed model
-pbgtest(fixed)
-# there is serial correlation
-# we have to do some time series modeling ?
-
-# Testing for serial correlation for random model
-pbgtest(random)
-# the same...
-
-# Testing for heteroskedasticity
-bptest(ln_Homicide ~ Inequality + ln_GDP_per_capita +
-         Lower_secondary_completion_rate + School_enrollment + 
-         Unemployment_int + Unsentenced + Police,
-       data = df,
-       studentize=F)
-
-
-# hausmann test
-phtest(fixed, random)
-# reject the null -> we choose fixed effects model
-
 
 
 
