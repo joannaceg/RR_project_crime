@@ -1,0 +1,105 @@
+---
+title: "Reproducible research - determinants of crime"
+author: "Joanna Ceglińska, Szymon Groszkiewicz"
+date: "26th of May, 2021"
+output:
+    ioslides_presentation:
+    highlight: tango
+    incremental: true
+    widescreen: true
+    smaller: true
+    logo: logo2.png
+
+---
+
+<style>
+.column-left{
+  float: left;
+  width: 33%;
+  text-align: left;
+}
+.column-right{
+  float: right;
+  width: 33%;
+  text-align: left;
+}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(kableExtra)
+```
+
+
+## Introduction
+
+**Aim of the project:**
+
+Reproduce the results of a bachelor thesis study prepared in 2019 by Joanna Ceglinska and extend the research
+
+**Modifications:**
+
+* different software (R instead of STATA)
+
+* bigger dataset (added two more years and added two variables) 
+
+* new method of missing data imputation
+
+* implementing more advanced methods of data analysis and visualization
+
+
+## The dataset comparison 
+
+**Common characteristics:**
+
+* 48 countries (the full list is available in the report)
+
+* Homicide rate as the dependent variable
+
+
+**Differences:**
+
+<div class="column-left">
+ **Original**
+
+* Years 2003-2015
+* 8 independent variables
+* 624 observations in total
+
+</div>
+<div class="column-right">
+**Extended**
+
+* Years 2003-2017 
+* Two additional variables (10 in total): 
+  1. Research and development expenditure 
+  2. Percentage of urban population in total
+* 720 observations in total
+
+</div>
+
+```{r , echo=FALSE, out.width = '100%', fig.align='center'}
+knitr::include_graphics("df_differences.png")
+```
+
+
+## Data sources
+
+```{r , echo=FALSE, out.width = '100%', fig.align='center'}
+knitr::include_graphics("df_desc.png")
+```
+
+Additional sources:
+For the variable Reseach and development expenditure (Dominican Republic, 2013)
+*Guzmán J. & Encarnación C., "Measuring and Promoting (R&D) Expenditure in Manufacturing Companies of High-Tech Healthcare Products in the Dominican Republic" (2015). Thesis. Rochester Institute of Technology*
+
+Turkey tertiary school enrollment
+*Knoema.com*
+
+
+
+
+# Thank you for your attention! 
+
