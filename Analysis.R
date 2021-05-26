@@ -85,7 +85,7 @@ ggplot(data) +
 # However, we thought about putting it into interval as in your work
 
 
-# Great plot to show how Homicide changed across years (easily can be changed with contries)
+# Great plot to show how Homicide changed across years (easily can be changed with countries)
 library(gplots)
 
 plotmeans(ln_Homicide ~ Year, main="Heterogeineity across years", data=data)
@@ -183,8 +183,14 @@ pFtest(fixed, pols)
 plmtest(pols, type=c("bp"))
 # also effects are significant
 
+# Testing time-fixed effects. The null is that no time-fixed effects needed
+plmtest(fixed, c("time"), type=("bp"))
+# Fail to reject the null -> No need to use time-fixed effects
+
+### This part probably should be presented later at the final model ###################
+
 # Testing for cross-sectional dependence/contemporaneous correlation:
-# using Breusch-Pagan LM test of independence and Pasaran CD test
+# using Breusch-Pagan LM test of independence and Pesaran CD test
 pcdtest(fixed, test = c("lm"))
 pcdtest(fixed, test = c("cd"))
 # we reject the null -> we have a cross sectional correlation
@@ -204,7 +210,7 @@ bptest(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
          Unemployment_int + Unsentenced + Police,
        data = df,
        studentize=F)
-
+#########################################################################################
 
 # hausmann test
 phtest(fixed, random)
@@ -323,5 +329,46 @@ model_Bachelor <- plm(ln_Homicide ~ Inequality + ln_GDP_per_capita + School_enro
 summary(model_Bachelor)
 # Not all variables are significant in the model constructed in this way.
 
+
+# Model diagnostic -------------------------------------------------------
+
+# RESET test for plm() model??
+
+# test Jarque-Bera - test na normalność rozkładu błędów losowych ??
+
+
+# Testing for cross-sectional dependence/contemporaneous correlation:
+# using Breusch-Pagan LM test of independence and Pesaran CD test
+pcdtest(model3, test = c("lm"))
+pcdtest(model3, test = c("cd"))
+# we reject the null -> we have a cross-sectional correlation
+
+# Testing for serial correlation for fixed model
+pbgtest(model3)
+# there is serial correlation
+# we have to do some time series modeling ?
+
+
+# Testing for heteroskedasticity
+bptest(ln_Homicide ~ Education_years + ln_GDP_per_capita +
+         School_enrollment + Unemployment_int + Unsentenced,
+       data = df,
+       studentize=F)
+# The null hypothesis for the Breusch-Pagan test is homoskedasticity.
+
+
+# Estimators ? ------------------------------------------------------
+
+# heteroskedasticity-robust estimator for fixed-effects model
+coeftest(model3, vcov.=vcovHC(model3, type="HC0", cluster="group")) # Heteroskedasticity consistent coefficients
+
+# autocorrelation-robust estimator for fixed-effects model
+coeftest(model3, vcov.=vcovNW(model3, type="HC0", cluster="group"))
+
+# robust for cross-sectional and serial correlation estimator
+coeftest(model3, vcov.=vcovSCC(model3, type="HC0", cluster="time"))
+
+# "arellano" - both heteroskedasticity and serial correlation (recommended for fixed effects)
+coeftest(fixed, vcovHC(model3, method = "arellano"))
 
 
