@@ -88,7 +88,7 @@ ggplot(data) +
 # Great plot to show how Homicide changed across years (easily can be changed with countries)
 library(gplots)
 
-plotmeans(ln_Homicide ~ Year, main="Heterogeineity across years", data=data)
+plotmeans(Homicide ~ Year, main="Heterogeineity across years", data=data)
 
 
 # Basic Reproduction -----------------------------------------------
@@ -225,33 +225,33 @@ library(aod)
 # deleting insignificant variables with 'general-to-specific' procedure
 
 # Base model
-model <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-               Lower_secondary_completion_rate + School_enrollment + 
-               Unemployment_int + Unsentenced + Police,
-             data = df, 
-             index=c("Country", "Year"),
-             model="within")
+model1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                Lower_secondary_completion_rate + School_enrollment + 
+                Unemployment_int + Unsentenced + Police,
+              data = df, 
+              index=c("Country", "Year"),
+              model="within")
 
-summary(model)
+summary(model1)
 
 ## Lower_secondary_completion_rate
 
 # We generate the model without Lower_secondary_completion_rate
 
-model1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-              School_enrollment + Unemployment_int + Unsentenced + Police,
-              data = df, 
-              index=c("Country", "Year"),
-              model="within")
+model1.1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                School_enrollment + Unemployment_int + Unsentenced + Police,
+                data = df, 
+                index=c("Country", "Year"),
+                model="within")
 
 
 # check the significance of this change
 h <- rbind(c(0,0,0,1,0,0,0,0,0))
 
-wald.test(b = coef(model), Sigma = vcov(model), L = h)
+wald.test(b = coef(model1), Sigma = vcov(model1), L = h)
 # we fail to reject the null hypothesis -> no reason to omit this restriction 
 
-coeftest(model1)
+coeftest(model1.1)
 
 ## Police
 
@@ -259,18 +259,18 @@ coeftest(model1)
 
 # Therefore, we generate the model without Lower_secondary_completion_rate and without Police
 
-model2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-                School_enrollment + Unemployment_int + Unsentenced,
-              data = df, 
-              index=c("Country", "Year"),
-              model="within")
+model1.2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                 School_enrollment + Unemployment_int + Unsentenced,
+                data = df, 
+                index=c("Country", "Year"),
+                model="within")
 
 h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1))
 
-wald.test(b = coef(model), Sigma = vcov(model), L = h)
+wald.test(b = coef(model1), Sigma = vcov(model1), L = h)
 # we fail to reject the null hypothesis that those two coefficients are equal to 0.
 
-coeftest(model2)
+coeftest(model1.2)
 
 ## Inequality vs School_enrollment
 
@@ -281,42 +281,42 @@ coeftest(model2)
 
 # Now we generate the model without Lower_secondary_completion_rate, Police and Inequality
 
-model3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
-                School_enrollment + Unemployment_int + Unsentenced,
-              data = df, 
-              index=c("Country", "Year"),
-              model="within")
+model1.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
+                  School_enrollment + Unemployment_int + Unsentenced,
+                data = df, 
+                index=c("Country", "Year"),
+                model="within")
 
 h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1),c(1,0,0,0,0,0,0,0,0))
 
-wald.test(b = coef(model), Sigma = vcov(model), L = h)
+wald.test(b = coef(model1), Sigma = vcov(model1), L = h)
 # we fail to reject the null hypothesis that all those coefficients are equal to 0.
 
-coeftest(model3)
+coeftest(model1.3)
 # School_enrollment still significant
 
 # School_enrollment
 
 # Now we generate the model without Lower_secondary_completion_rate, Police and School_enrollment
 
-model4 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-                Unemployment_int + Unsentenced,
-              data = df, 
-              index=c("Country", "Year"),
-              model="within")
+model1.4 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                  Unemployment_int + Unsentenced,
+                data = df, 
+                index=c("Country", "Year"),
+                model="within")
 
 h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1),c(0,0,0,0,1,0,0,0,0))
 
-wald.test(b = coef(model), Sigma = vcov(model), L = h)
+wald.test(b = coef(model1), Sigma = vcov(model1), L = h)
 # we are close to reject the null hypothesis that all those coefficients are equal to 0.
 # Therefore, we rather should not delete School_enrollment variable
 
-coeftest(model4)
+coeftest(model1.4)
 # Inequality still insignificant
 
 
 # Our final model
-summary(model3)
+summary(model1.3)
 
 # It is different than the one in Bachelor Thesis...
 
@@ -330,6 +330,29 @@ model_Bachelor <- plm(ln_Homicide ~ Inequality + ln_GDP_per_capita + School_enro
 summary(model_Bachelor)
 # Not all variables are significant in the model constructed in this way.
 
+# Let us check its diagnostic:
+
+# Testing for cross-sectional dependence/contemporaneous correlation:
+# using Breusch-Pagan LM test of independence and Pesaran CD test
+pcdtest(model_Bachelor, test = c("lm"))
+pcdtest(model_Bachelor, test = c("cd"))
+# we reject the null -> we have a cross-sectional correlation
+
+# Testing for serial correlation for fixed model
+pbgtest(model_Bachelor)
+# there is serial correlation
+
+
+# Testing for heteroskedasticity
+bptest(ln_Homicide ~ Inequality + ln_GDP_per_capita + School_enrollment +
+         Police + Unsentenced,
+       data = df,
+       studentize=F)
+# The null hypothesis for the Breusch-Pagan test is homoskedasticity.
+
+# It has all of those (similarly to all final models below)
+coeftest(model_Bachelor, vcovHC(model_Bachelor, method = "arellano", type="HC0", cluster = "time"))
+# Still some insignificant variables...
 
 # Model diagnostic -------------------------------------------------------
 
@@ -340,12 +363,12 @@ summary(model_Bachelor)
 
 # Testing for cross-sectional dependence/contemporaneous correlation:
 # using Breusch-Pagan LM test of independence and Pesaran CD test
-pcdtest(model3, test = c("lm"))
-pcdtest(model3, test = c("cd"))
+pcdtest(model1.3, test = c("lm"))
+pcdtest(model1.3, test = c("cd"))
 # we reject the null -> we have a cross-sectional correlation
 
 # Testing for serial correlation for fixed model
-pbgtest(model3)
+pbgtest(model1.3)
 # there is serial correlation
 # we have to do some time series modeling ?
 
@@ -361,22 +384,22 @@ bptest(ln_Homicide ~ Education_years + ln_GDP_per_capita +
 # Estimators ------------------------------------------------------
 
 # heteroskedasticity-robust estimator for fixed-effects model
-coeftest(model3, vcov.=vcovHC(model3, type="HC0", cluster="group")) # Heteroskedasticity consistent coefficients
+coeftest(model1.3, vcov.=vcovHC(model1.3, type="HC0", cluster="group")) # Heteroskedasticity consistent coefficients
 
 # autocorrelation-robust estimator for fixed-effects model
-coeftest(model3, vcov.=vcovNW(model3, type="HC0", cluster="group"))
+coeftest(model1.3, vcov.=vcovNW(model1.3, type="HC0", cluster="group"))
 
 # robust for cross-sectional and serial correlation estimator
-coeftest(model3, vcov.=vcovSCC(model3, type="HC0", cluster="time"))
+coeftest(model1.3, vcov.=vcovSCC(model1.3, type="HC0", cluster="time"))
 
 ### The best choice:
 # "arellano" - both heteroskedasticity and serial correlation (recommended for fixed effects)
-coeftest(model3, vcovHC(model3, method = "arellano", type="HC0", cluster = "time"))
+coeftest(model1.3, vcovHC(model1.3, method = "arellano", type="HC0", cluster = "time"))
 
 # What is more, "observations may be clustered by "group" ("time") to account 
 # for serial (cross-sectional) correlation" (RDocumentation of vcvoHC() function)
 
-
+model1.final <- coeftest(model1.3, vcovHC(model1.3, method = "arellano", type="HC0", cluster = "time"))
 
 
 
@@ -514,33 +537,33 @@ stats_table(fixed2, random2, pols2)
 # Deleting insignificant variables with 'general-to-specific' procedure
 
 # Base model
-model <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-               Lower_secondary_completion_rate + School_enrollment + 
-               Unemployment_int + Unsentenced + Police,
-             data = df2, 
-             index=c("Country", "Year"),
-             model="within")
+model2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                Lower_secondary_completion_rate + School_enrollment + 
+                Unemployment_int + Unsentenced + Police,
+              data = df2, 
+              index=c("Country", "Year"),
+              model="within")
 
-summary(model)
+summary(model2)
 
 ## Lower_secondary_completion_rate
 
 # We generate the model without Lower_secondary_completion_rate
 
-model1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-                School_enrollment + Unemployment_int + Unsentenced + Police,
-              data = df2, 
-              index=c("Country", "Year"),
-              model="within")
+model2.1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                  School_enrollment + Unemployment_int + Unsentenced + Police,
+                data = df2, 
+                index=c("Country", "Year"),
+                model="within")
 
 
 # check the significance of this change
 h <- rbind(c(0,0,0,1,0,0,0,0,0))
 
-wald.test(b = coef(model), Sigma = vcov(model), L = h)
+wald.test(b = coef(model2), Sigma = vcov(model2), L = h)
 # we fail to reject the null hypothesis -> no reason to omit this restriction 
 
-coeftest(model1)
+coeftest(model2.1)
 
 ## Police
 
@@ -548,18 +571,18 @@ coeftest(model1)
 
 # Therefore, we generate the model without Lower_secondary_completion_rate and without Police
 
-model2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-                School_enrollment + Unemployment_int + Unsentenced,
-              data = df2, 
-              index=c("Country", "Year"),
-              model="within")
+model2.2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                  School_enrollment + Unemployment_int + Unsentenced,
+                data = df2, 
+                index=c("Country", "Year"),
+                model="within")
 
 h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1))
 
-wald.test(b = coef(model), Sigma = vcov(model), L = h)
+wald.test(b = coef(model2), Sigma = vcov(model2), L = h)
 # we fail to reject the null hypothesis that those two coefficients are equal to 0.
 
-coeftest(model2)
+coeftest(model2.2)
 
 ## Inequality vs School_enrollment
 
@@ -570,43 +593,43 @@ coeftest(model2)
 
 # Now we generate the model without Lower_secondary_completion_rate, Police and Inequality
 
-model3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
-                School_enrollment + Unemployment_int + Unsentenced,
-              data = df2, 
-              index=c("Country", "Year"),
-              model="within")
+model2.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
+                  School_enrollment + Unemployment_int + Unsentenced,
+                data = df2, 
+                index=c("Country", "Year"),
+                model="within")
 
 h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1),c(1,0,0,0,0,0,0,0,0))
 
-wald.test(b = coef(model), Sigma = vcov(model), L = h)
+wald.test(b = coef(model2), Sigma = vcov(model2), L = h)
 # we fail to reject the null hypothesis that all those coefficients are equal to 0.
 
-coeftest(model3)
+coeftest(model2.3)
 # School_enrollment still significant
 
 # School_enrollment
 
 # Now we generate the model without Lower_secondary_completion_rate, Police and School_enrollment
 
-model4 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-                Unemployment_int + Unsentenced,
-              data = df2, 
-              index=c("Country", "Year"),
-              model="within")
+model2.4 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                  Unemployment_int + Unsentenced,
+                data = df2, 
+                index=c("Country", "Year"),
+                model="within")
 
 h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1),c(0,0,0,0,1,0,0,0,0))
 
-wald.test(b = coef(model), Sigma = vcov(model), L = h)
+wald.test(b = coef(model2), Sigma = vcov(model2), L = h)
 # we are not far from rejecting the null hypothesis that all those coefficients are equal to 0.
 # Therefore, we rather should not delete School_enrollment variable
 
-coeftest(model4)
+coeftest(model2.4)
 # Inequality still insignificant. With this approach we surely biased other estimators,
 # so it is not the best approach.
 
 
 # Our final model
-summary(model3)
+summary(model2.3)
 
 
 # Model diagnostic -------------------------------------------------------
@@ -618,12 +641,12 @@ summary(model3)
 
 # Testing for cross-sectional dependence/contemporaneous correlation:
 # using Breusch-Pagan LM test of independence and Pesaran CD test
-pcdtest(model3, test = c("lm"))
-pcdtest(model3, test = c("cd"))
+pcdtest(model2.3, test = c("lm"))
+pcdtest(model2.3, test = c("cd"))
 # we reject the null -> we have a cross-sectional correlation
 
 # Testing for serial correlation for fixed model
-pbgtest(model3)
+pbgtest(model2.3)
 # there is serial correlation
 # we have to do some time series modeling ?
 
@@ -642,8 +665,264 @@ bptest(ln_Homicide ~ Education_years + ln_GDP_per_capita +
 
 ### As before we use:
 # "arellano" - both heteroskedasticity and serial correlation (recommended for fixed effects)
-coeftest(model3, vcovHC(model3, method = "arellano", type="HC0", cluster = "time"))
+coeftest(model2.3, vcovHC(model2.3, method = "arellano", type="HC0", cluster = "time"))
 
 # All variables still significant
+
+model2.final <- coeftest(model2.3, vcovHC(model2.3, method = "arellano", type="HC0", cluster = "time"))
+
+
+# Replication (adding new observations and new variables) ----------------------------------------------
+
+# Now we move to the replication part in which we test whether the results stay the same when adding
+# 96 more observations (2014 & 2015 years) as before...
+# but now also 2 new variables (Urbanization_rate & RnD_expenditure). 
+
+
+# Choosing vars, without RnD_expenditure and Urbanization_rate, but now for all years including 2014 & 2015
+df3 <- data %>%
+  select(Country, Year, Homicide, Inequality, Education_years, 
+         GDP_per_capita, Lower_secondary_completion_rate, 
+         School_enrollment, Unemployment, Unsentenced, Police,
+         Urbanization_rate, RnD_expenditure)
+
+## Data transformation --------------------------------------
+
+# Exactly as in the previous replication (since we did not add for them any new observations)
+
+# Homicide
+df3$ln_Homicide <- log(df3$Homicide)
+
+# GDP per capita
+df3$ln_GDP_per_capita <- log(df3$GDP_per_capita)
+
+# Unemployment
+df3$Unemployment_int <- cut(df3$Unemployment,
+                            breaks = c(0,5.5,8.5,Inf),
+                            labels = c("low", "medium","high"))
+
+# Maybe new variables require some transformation ?
+
+# Urbanization_rate
+bestNormalize::boxcox(data$Urbanization_rate)$lambda
+
+ggplot(df3) +
+  geom_histogram(aes(Urbanization_rate), fill = "Steelblue", color = "black")
+
+# this one rather not
+
+# RnD_expenditure
+bestNormalize::boxcox(df3$RnD_expenditure)$lambda
+
+ggplot(df3) +
+  geom_histogram(aes(RnD_expenditure), fill = "Steelblue", color = "black")
+
+ggplot(df3) +
+  geom_histogram(aes(log(RnD_expenditure)), fill = "Steelblue", color = "black")
+
+# I would log-transform it (all values of this variable are positive)
+df3$ln_RnD_expenditure <- log(df3$RnD_expenditure)
+
+# OR maybe divide it into intervals ?? How did you do it in MA thesis?
+df3$lRnD_expenditure_int <- cut(df3$RnD_expenditure,
+                                breaks = c(0,0.5,1,2,5)) # partly based on quantiles
+# I also tried other intervals, but still this variable was insignificant in the final model
+
+### Model --------------------------------------------
+
+# fixed effects model
+fixed3 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                Lower_secondary_completion_rate + School_enrollment + 
+                Unemployment_int + Unsentenced + Police + Urbanization_rate + ln_RnD_expenditure,
+              data = df3, 
+              index=c("Country", "Year"),
+              model="within")
+
+summary(fixed3)
+
+# random effects model
+random3 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                 Lower_secondary_completion_rate + School_enrollment + 
+                 Unemployment_int + Unsentenced + Police + Urbanization_rate + ln_RnD_expenditure,
+               data = df3, 
+               index=c("Country", "Year"),
+               model="random")
+
+summary(random3)
+
+# POLS
+pols3 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+               Lower_secondary_completion_rate + School_enrollment + 
+               Unemployment_int + Unsentenced + Police + Urbanization_rate + ln_RnD_expenditure,
+             data = df3,
+             index=c("Country", "Year"),
+             model="pooling")
+
+
+stats_table(fixed3, random3, pols3)
+# Both random and fixed effects are significant
+# There is no need for time-fixed effects
+# Hausmann test indicates again to choose fixed effects model
+
+
+
+# Fixed model preparation  -------------------------------------------------
+
+# Deleting insignificant variables with 'general-to-specific' procedure
+
+# Base model
+model3 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                Lower_secondary_completion_rate + School_enrollment + 
+                Unemployment_int + Unsentenced + Police + Urbanization_rate + ln_RnD_expenditure,
+              data = df3, 
+              index=c("Country", "Year"),
+              model="within")
+
+summary(model3)
+
+## Lower_secondary_completion_rate
+
+# We generate the model without Lower_secondary_completion_rate
+
+model3.1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                  School_enrollment + Unemployment_int + Unsentenced + Police + Urbanization_rate + ln_RnD_expenditure,
+                data = df3, 
+                index=c("Country", "Year"),
+                model="within")
+
+
+# check the significance of this change
+h <- rbind(c(0,0,0,1,0,0,0,0,0,0,0))
+
+wald.test(b = coef(model3), Sigma = vcov(model3), L = h)
+# we fail to reject the null hypothesis -> no reason to omit this restriction 
+
+coeftest(model3.1)
+
+## Police
+
+# Let us now check the whether the 'Police' coefficient is equal to zero.
+
+# Therefore, we generate the model without Lower_secondary_completion_rate and without Police
+
+model3.2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                  School_enrollment + Unemployment_int + Unsentenced + Urbanization_rate + ln_RnD_expenditure,
+                data = df3, 
+                index=c("Country", "Year"),
+                model="within")
+
+h <- rbind(c(0,0,0,1,0,0,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1,0,0))
+
+wald.test(b = coef(model3), Sigma = vcov(model3), L = h)
+# we fail to reject the null hypothesis that those two coefficients are equal to 0.
+
+coeftest(model3.2)
+
+## Inequality
+
+# Now we generate the model without Lower_secondary_completion_rate, Police and Inequality
+
+model3.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
+                  School_enrollment + Unemployment_int + Unsentenced + Urbanization_rate + ln_RnD_expenditure,
+                data = df3, 
+                index=c("Country", "Year"),
+                model="within")
+
+h <- rbind(c(0,0,0,1,0,0,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1,0,0),c(1,0,0,0,0,0,0,0,0,0,0))
+
+wald.test(b = coef(model3), Sigma = vcov(model3), L = h)
+# we fail to reject the null hypothesis that all those coefficients are equal to 0.
+
+coeftest(model3.3)
+
+# ln_RnD_expenditure
+
+# Now we generate the model without Lower_secondary_completion_rate, Police and ln_RnD_expenditure
+
+model3.4 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
+                  School_enrollment + Unemployment_int + Unsentenced + Urbanization_rate,
+                data = df3, 
+                index=c("Country", "Year"),
+                model="within")
+
+h <- rbind(c(0,0,0,1,0,0,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1,0,0),c(1,0,0,0,0,0,0,0,0,0,0),c(0,0,0,0,0,0,0,0,0,0,1))
+
+wald.test(b = coef(model3), Sigma = vcov(model3), L = h)
+# we fail to reject the null hypothesis that all those coefficients are equal to 0.
+
+coeftest(model3.4)
+# Education_years became more insignificant when deleting ln_RnD_expenditure
+
+# Education_years
+
+# Now we also omit Education_years variable
+model3.5 <- plm(ln_Homicide ~ ln_GDP_per_capita + School_enrollment + Unemployment_int + 
+                  Unsentenced + Urbanization_rate,
+                data = df3, 
+                index=c("Country", "Year"),
+                model="within")
+
+h <- rbind(c(0,0,0,1,0,0,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1,0,0),c(1,0,0,0,0,0,0,0,0,0,0),
+           c(0,0,0,0,0,0,0,0,0,0,1),c(0,1,0,0,0,0,0,0,0,0,0))
+
+wald.test(b = coef(model3), Sigma = vcov(model3), L = h)
+# we fail to reject the null hypothesis that all those coefficients are equal to 0.
+
+coeftest(model3.5)
+# All significant. That is our final model
+
+# Model diagnostic -------------------------------------------------------
+
+# RESET test for plm() model??
+
+# test Jarque-Bera - test na normalność rozkładu błędów losowych ??
+
+
+# Testing for cross-sectional dependence/contemporaneous correlation:
+# using Breusch-Pagan LM test of independence and Pesaran CD test
+pcdtest(model3.5, test = c("lm"))
+pcdtest(model3.5, test = c("cd"))
+# we reject the null -> we have a cross-sectional correlation
+
+# Testing for serial correlation for fixed model
+pbgtest(model3.5)
+# there is serial correlation
+
+
+# Testing for heteroskedasticity
+bptest(ln_Homicide ~ ln_GDP_per_capita + School_enrollment + Unemployment_int + 
+         Unsentenced + Urbanization_rate,
+       data = df3,
+       studentize=F)
+# The null hypothesis for the Breusch-Pagan test is homoskedasticity.
+
+
+# Note: again we have all: heteroskedasticity,serial correlation and cross-sectional dependence
+
+# Estimators ------------------------------------------------------
+
+### As before we use:
+# "arellano" - both heteroskedasticity and serial correlation (recommended for fixed effects)
+coeftest(model3.5, vcovHC(model3.5, method = "arellano", type="HC0", cluster = "time"))
+
+# All variables still significant
+
+# Note: this time when we take the model with Education_years, its coefficient is significant!!
+# Should we take this model??
+coeftest(model3.4, vcovHC(model3.4, method = "arellano", type="HC0", cluster = "time"))
+
+model3.final <- coeftest(model3.4, vcovHC(model3.4, method = "arellano", type="HC0", cluster = "time"))
+
+library(stargazer)
+
+
+stargazer(model_Bachelor, model1.3, model2.3, model3.4, type="text")
+
+# This one should be displyed, but it lack of statistics... how to change it?
+stargazer(model_Bachelor, model1.final, model2.final, model3.final, type="text")
+
+
+
+
 
 
