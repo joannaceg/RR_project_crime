@@ -24,7 +24,11 @@ output:
   width: 60%;
   text-align: left;
 }
+.reduced{
+  font-size: 0.3em;
+}
 </style>
+
 
 
 ```{r setup, include=FALSE}
@@ -113,11 +117,72 @@ stats_table <- function(fixed, random, pols, sig.level = 0.05) {
   
   
   return(result %>% 
-           kable(format = "html", align = "c") %>%
-           kable_styling(bootstrap_options = c("striped","hover"),
-                full_width = T, position = "center",
-                font_size = 14))
+           kbl(booktabs = T) %>%
+            kable_material_dark(full_width = F, bootstrap_options = c("hover"),
+                                font_size = 22)
+           # kable(format = "html", align = "c") %>%
+           # kable_styling(bootstrap_options = c("striped","condensed"),
+           #      full_width = T, position = "center",
+           #      font_size = 14)
+         )
 }
+
+
+model_diagnostic <- function(model, sig.level = 0.05) {
+  
+  library(dplyr)
+  library(kableExtra)
+  library(knitr)
+  library(lmtest)
+  library(plm)
+  
+  
+  # Breusch-Pagan LM test for cross-sectional dependence
+  a <- pcdtest(model, test = c("lm"))
+  
+  a_con <- ifelse(a$p.value < sig.level, "cross-sectional dependence", "no cross-sectional dependence")
+  
+  # Pesaran CD test for cross-sectional dependence
+  b <- pcdtest(model, test = c("cd"))
+  
+  b_con <- ifelse(b$p.value < sig.level, "cross-sectional dependence", "no cross-sectional dependence")
+  
+  # Breusch-Godfrey/Wooldridge test for serial correlation
+  c <- pbgtest(model)
+  
+  c_con <- ifelse(c$p.value < sig.level, "serial correlation", "no serial correlation")
+  
+  # Breusch-Pagan test for heteroskedasticity
+  d <- bptest(model$formula,
+              data = df,
+              studentize=F)
+  
+  d_con <- ifelse(d$p.value < sig.level, "heteroskedasticity", "homoskedasticity")
+  
+  
+  # Data frame result
+  result <- data.frame(test = c("Breusch-Pagan LM test for cross-sectional dependence",
+                                "Pesaran CD test for cross-sectional dependence",
+                                "Breusch-Godfrey/Wooldridge test for serial correlation",
+                                "Breusch-Pagan test for heteroskedasticity"
+  ),
+  p.value = c(a$p.value, b$p.value, 
+              c$p.value, d$p.value) %>% 
+    round(4),
+  conclusion = c(a_con, b_con,
+                 c_con, d_con) ,
+  row.names = NULL
+  )
+  result$p.value <- ifelse(result$p.value == 0, "< 0.0001" , result$p.value)
+  
+  
+  return(result %>% 
+           kbl(booktabs = T) %>%
+           kable_material_dark(full_width = F, bootstrap_options = c("hover"),
+                               font_size = 20)
+  )
+}
+
 ```
 
 ## The aim of the project
@@ -253,7 +318,116 @@ pols <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
 stats_table(fixed,random, pols)
 ```
 
-why such a table??
+$$ $$
+$$ \Rightarrow \text{we choose} \mathbf{\text{ fixed effects model}} $$
+
+## Fixed effects model {.smaller}
+
+```{r, echo=F}
+a <- summary(fixed)
+a$formula
+coeftest(fixed)
+```
+
+```{r, echo=F}
+# Lower_secondary_completion_rate
+model1.1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                School_enrollment + Unemployment_int + Unsentenced + Police,
+                data = df, 
+                index=c("Country", "Year"),
+                model="within")
+
+## Police
+model1.2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                 School_enrollment + Unemployment_int + Unsentenced,
+                data = df, 
+                index=c("Country", "Year"),
+                model="within")
+
+## Inequality
+model1.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
+                  School_enrollment + Unemployment_int + Unsentenced,
+                data = df, 
+                index=c("Country", "Year"),
+                model="within")
+```
+
+## General-to-specific procedure {.smaller}
+
+```{r, echo=F}
+coeftest(fixed)
+```
+
+## General-to-specific procedure {.smaller}
+
+```{r, echo=F}
+coeftest(model1.1)
+```
+
+* <del> Lower_secondary_completion_rate
+
+## General-to-specific procedure {.smaller}
+
+```{r, echo=F}
+coeftest(model1.2)
+```
+
+* <del> Lower_secondary_completion_rate
+* <del> Police
+
+## General-to-specific procedure {.smaller}
+
+```{r, echo=F}
+coeftest(model1.3)
+```
+
+* <del> Lower_secondary_completion_rate
+* <del> Police
+* <del> Inequality
+
+## Model diagnostic
+
+```{r}
+model_diagnostic(model1.3)
+```
+
+$$ $$
+$$ \Rightarrow \text{appropriate robust estimator needed} $$
+
+## Robust estimator
+
+```{r}
+coeftest(model1.3, 
+         vcovHC(model1.3, method = "arellano", type="HC0", cluster = "time"))
+```
+
+## Bachelor thesis model
+
+```{r}
+model_Bachelor <- plm(ln_Homicide ~ Inequality + ln_GDP_per_capita + 
+                        School_enrollment + Police + Unsentenced,
+                      data = df, 
+                      index = c("Country", "Year"),
+                      model = "within")
+```
+
+```{r, echo=F}
+model_diagnostic(model_Bachelor)
+```
+
+## {.smaller}
+
+```{r, echo=F}
+library(stargazer)
+
+model1.final <- coeftest(model1.3, vcovHC(model1.3, method = "arellano", type="HC0", cluster = "time"))
+
+model_Bachelor.final <- coeftest(model_Bachelor, vcovHC(model_Bachelor, method = "arellano", type="HC0", cluster = "time"))
+
+stargazer(model_Bachelor.final, model1.final, type="text", colnames = TRUE, column.labels = c("Bachelor","Reproduction"), font.size = "tiny")
+```
+
+## Hypothesis comparison ??
 
 # Thank you for your attention! 
 
