@@ -1,14 +1,15 @@
 ---
-title: "Reproducible research - determinants of crime"
-author: "Joanna Ceglińska, Szymon Groszkiewicz"
-date: "26th of May, 2021"
+title: "Economic determinants <br> of crime in the world"
+subtitle: "Reproducible Research project"
+author: "Joanna Ceglińska & Szymon Groszkiewicz"
+date: "27th of May, 2021"
 output:
     ioslides_presentation:
     highlight: tango
     incremental: true
     widescreen: true
     smaller: true
-    logo: logo2.png
+#    logo: logo2.png
 
 ---
 
@@ -23,43 +24,243 @@ output:
   width: 65%;
   text-align: left;
 }
+.reduced{
+  font-size: 0.3em;
+}
+.small_font14{
+  font-size: 14px;
+}
+.small_font18{
+  font-size: 18px;
+}
 </style>
 
 
+
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
 library(knitr)
 library(kableExtra)
+library(bestNormalize)
+library(dplyr)
+library(GGally)
+library(ggplot2)
+library(gplots)
+library(lmtest)
+library(plm)
+```
+
+```{r, echo=F}
+data <- read.csv("Data/data_no_missings.csv", header = T)
+
+data$X <- NULL
+
+# Shortening names of the columns
+colnames(data) <- c("Country", "Year", "Homicide", "Inequality", "Education_years", "GDP_per_capita",
+                    "Lower_secondary_completion_rate", "RnD_expenditure", "School_enrollment", 
+                    "Unemployment", "Urbanization_rate","Unsentenced", "Police")
+
+df <- data %>%
+  select(Country, Year, Homicide, Inequality, Education_years, 
+         GDP_per_capita, Lower_secondary_completion_rate, 
+         School_enrollment, Unemployment, Unsentenced, Police) %>%
+  filter(Year %in% 2003:2015)
+
+# Data transformation
+df$ln_Homicide <- log(df$Homicide)
+df$ln_GDP_per_capita <- log(df$GDP_per_capita)
+df$Unemployment_int <- cut(df$Unemployment,
+                           breaks = c(0,5.5,8.5,Inf),
+                           labels = c("_low", "_medium","_high"))
+
+```
+
+```{r, echo=F}
+stats_table <- function(fixed, random, pols, sig.level = 0.05) {
+  
+  library(dplyr)
+  library(kableExtra)
+  library(knitr)
+  library(plm)
+  
+    
+  # Breusch-Pagan Lagrange Multiplier test for random effects
+  random_effects <- plmtest(pols, type=c("bp"))
+  
+  random_effects_con <- ifelse(random_effects$p.value < sig.level, "significant random effects", "insignificant random effects")
+  
+  # F test for individual fixed effects
+  fixed_effects <- pFtest(fixed, pols)
+  
+  fixed_effects_con <- ifelse(fixed_effects$p.value < sig.level, "significant fixed effects", "insignificant fixed effects")
+  
+  # Breusch-Pagan Lagrange Multiplier test for time-fixed effects
+  time_fixed_effects <- plmtest(fixed, c("time"), type=("bp"))
+  
+  time_fixed_effects_con <- ifelse(time_fixed_effects$p.value < sig.level, "time-fixed effects needed", "no time-fixed effects needed")
+
+  # Hausmann test
+  hausmann <- phtest(fixed, random)
+  
+  hausmann_con <- ifelse(hausmann$p.value < sig.level, "choose fixed effects model", "choose random effects model")
+  
+  
+    
+  # Data frame result
+  result <- data.frame(test = c("Breusch-Pagan LM test for random effects",
+                                "F test for individual fixed effects",
+                                "Breusch-Pagan LM test for time-fixed effects",
+                                "Hausmann test"
+                                ),
+                       p.value = c(random_effects$p.value, fixed_effects$p.value, 
+                                   time_fixed_effects$p.value, hausmann$p.value) %>% 
+                         round(4),
+                       conclusion = c(random_effects_con, fixed_effects_con,
+                                      time_fixed_effects_con, hausmann_con) ,
+                       row.names = NULL
+                       )
+  result$p.value <- ifelse(result$p.value == 0, "< 0.0001" , result$p.value)
+  
+  
+  return(result %>% 
+           kbl(booktabs = T) %>%
+            kable_material_dark(full_width = F, bootstrap_options = c("hover"),
+                                font_size = 22)
+           # kable(format = "html", align = "c") %>%
+           # kable_styling(bootstrap_options = c("striped","condensed"),
+           #      full_width = T, position = "center",
+           #      font_size = 14)
+         )
+}
+
+model_diagnostic <- function(model, sig.level = 0.05) {
+  
+  library(dplyr)
+  library(kableExtra)
+  library(knitr)
+  library(lmtest)
+  library(plm)
+  
+  
+  # Breusch-Pagan LM test for cross-sectional dependence
+  a <- pcdtest(model, test = c("lm"))
+  
+  a_con <- ifelse(a$p.value < sig.level, "cross-sectional dependence", "no cross-sectional dependence")
+  
+  # Pesaran CD test for cross-sectional dependence
+  b <- pcdtest(model, test = c("cd"))
+  
+  b_con <- ifelse(b$p.value < sig.level, "cross-sectional dependence", "no cross-sectional dependence")
+  
+  # Breusch-Godfrey/Wooldridge test for serial correlation
+  c <- pbgtest(model)
+  
+  c_con <- ifelse(c$p.value < sig.level, "serial correlation", "no serial correlation")
+  
+  # Breusch-Pagan test for heteroskedasticity
+  d <- bptest(model$formula,
+              data = df,
+              studentize=F)
+  
+  d_con <- ifelse(d$p.value < sig.level, "heteroskedasticity", "homoskedasticity")
+  
+  
+  # Data frame result
+  result <- data.frame(test = c("Breusch-Pagan LM test for cross-sectional dependence",
+                                "Pesaran CD test for cross-sectional dependence",
+                                "Breusch-Godfrey/Wooldridge test for serial correlation",
+                                "Breusch-Pagan test for heteroskedasticity"
+  ),
+  p.value = c(a$p.value, b$p.value, 
+              c$p.value, d$p.value) %>% 
+    round(4),
+  conclusion = c(a_con, b_con,
+                 c_con, d_con) ,
+  row.names = NULL
+  )
+  result$p.value <- ifelse(result$p.value == 0, "< 0.0001" , result$p.value)
+  
+  
+  return(result %>% 
+           kbl(booktabs = T) %>%
+           kable_material_dark(full_width = F, bootstrap_options = c("hover"),
+                               font_size = 20)
+  )
+}
+
 ```
 
 
-## Introduction
+## The aim of the project
 
-**Aim of the project:**
+* **Reproduce** and **replicate** the results of a bachelor thesis study prepared in 2019 by Joanna Ceglińska (one of the project's authors).
 
-Reproduce the results of a bachelor thesis study prepared in 2019 by Joanna Ceglinska and extend the research
+$$ $$
 
-**Modifications:**
+More precisely:
 
-* different software (R and Python instead of STATA)
+* we decided to check whether, based on the same initial data, we will obtain the same results,
 
-* bigger dataset (added two more years and added two variables) 
+* and whether the results are **robust** to changes in the initial assumptions and to expanding the dataset.
 
-* new method of missing data imputation
+## Main modifications
 
-* implementing more advanced methods of data analysis and visualization
+* Different software (R and Python instead of STATA)
+
+* New method of missing data imputation
+
+* Extension of the dataset with new observations (from 2 consecutive years)
+
+* Extension of the dataset with two new variables
+
+* Implementing more advanced methods of data analysis and visualization
 
 
-## The dataset comparison 
+## Analyzing the problem
 
-**Common characteristics:**
+The main concern - poor economic situation in countries in Latin America. 
 
-* 48 countries (the full list is available in the report)
+Venezuela: an economic power after WWII, now it struggles with murders, kidnapping, drug dealing and other crimes.
+
+Aren't countries like the United States, Germany or Switzerland in danger of a similar situation?
+
+
+```{r , echo=FALSE, out.width = '55%', fig.align='center'}
+plotmeans(Homicide ~ Year, main="Heterogeineity across years", data=data)
+```
+
+## The dependent variable
+
+* The dependent variable is the **homicide rate**, which is the number of homicides (deaths caused by another person) per 100,000 population.
+
+* A homicide is **not** equivalent to murder!
+
+* Why this variable?
+
+  - serious crime
+  
+  - available data
+  
+  - well tracked
+  
+  - reliable information
+  
+  - universal definition across cultures and countries
+
+
+## Data
+
+<!-- **Common characteristics:** -->
 
 * Homicide rate as the dependent variable
 
+* 48 countries
+
+$$ $$
+<!-- **Differences:** -->
+
 <div class="column-left">
- **Original**
+ **Original dataset**
 
 * Years 2003-2015
 * 8 independent variables
@@ -67,32 +268,249 @@ Reproduce the results of a bachelor thesis study prepared in 2019 by Joanna Cegl
 
 </div>
 <div class="column-right">
-**Extended**
+**Extended dataset**
 
 * Years 2003-2017 
-* Two additional variables (10 in total): 
-  1. Research and development expenditure 
-  2. Percentage of urban population in total
+* 8 + 2 independent variables:
+  - Research and development expenditure 
+  - Urbanization rate
 * 720 observations in total
 
 </div>
 
 
+## Independent variables 
+<div class="small_font18">
+* Homicide rate (per 100,000 population)
+
+* Unsentenced detainees as a proportion of overall prison population
+
+* Police personnel (per 100,000 population)
+
+* Gini index (income inequality measure)
+
+* Lower secondary completion rate (% of relevant age group)
+
+* School enrollment,  tertiary (% gross)
+
+* Unemployment (% of total labor force) (national estimate)
+
+* Compulsory education duration (years)
+
+* GDP per capita (constant 2010 US$)
+
+* **Research and development expenditure (% of GDP)**
+
+* **Urban population (% of total population)**
+</div>
+
 ## Data sources
 
-```{r , echo=FALSE, out.width = '100%', fig.align='center'}
+```{r , echo=FALSE, out.width = '80%', fig.align='center'}
 knitr::include_graphics("df_desc.png")
 ```
 
+<div class="small_font14">
+
 Additional sources:
-For the variable Research and development expenditure (Dominican Republic, 2013)
-*Guzmán J. & Encarnación C., "Measuring and Promoting (R&D) Expenditure in Manufacturing Companies of High-Tech Healthcare Products in the Dominican Republic" (2015). Thesis. Rochester Institute of Technology*
 
-Turkey tertiary school enrollment
-*Knoema.com*
+* Research and development expenditure variable (Dominican Republic, 2013):
+Guzmán J. & Encarnación C., "Measuring and Promoting (R&D) Expenditure in Manufacturing Companies of High-Tech Healthcare Products in the Dominican Republic" (2015). Rochester Institute of Technology
+
+* Tertiary school enrollment (Turkey, 2004-2015) : www.knoema.com
+
+</div>
+
+## Filling the missings value
+
+**Previously:** manual way, prone to mistakes and errors in estimations - relying on trends in data
+
+**Now:** moving average algorithm (2 period window) that fills in the blanks automatically based on existing values of observations
+
+Advantages:
+
+* consistent results
+* fast, reusable algorithm
+* unbiased when it comes to estimation
 
 
+## Research hypotheses
+<div class="small_font18">
+<span style="color:green">
+**Positive impact (increase the crime level):** </span>
 
+* Unsentenced detainees as a proportion of overall prison population
+
+* Unemployment rate
+
+* Urban population 
+
+
+<span style="color:red">
+**Negative impact (decrease the crime level)**</span>
+
+* Gini index
+
+* GDP per capita
+
+* Years of compulsory education
+
+* Lower secondary education completion rate
+
+* Tertiary school enrollment
+
+* Police personnel
+
+* Research and development expenditure
+
+</div>
+
+# Reproduction
+
+## The schema of model selection
+
+short description and the schema from the Internet?
+
+## Reproduction - model selection
+
+```{r, echo=F}
+# fixed effects model
+fixed <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+             Lower_secondary_completion_rate + School_enrollment + 
+             Unemployment_int + Unsentenced + Police,
+             data = df, 
+             index=c("Country", "Year"),
+             model="within")
+
+# random effects model
+random <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+               Lower_secondary_completion_rate + School_enrollment + 
+               Unemployment_int + Unsentenced + Police,
+             data = df, 
+             index=c("Country", "Year"),
+             model="random")
+
+# POLS
+pols <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+              Lower_secondary_completion_rate + School_enrollment + 
+              Unemployment_int + Unsentenced + Police,
+            data = df,
+            index=c("Country", "Year"),
+            model="pooling")
+
+stats_table(fixed,random, pols)
+```
+
+$$ $$
+$$ \Rightarrow \text{we choose} \mathbf{\text{ fixed effects model}} $$
+
+## Fixed effects model {.smaller}
+
+```{r, echo=F}
+a <- summary(fixed)
+a$formula
+coeftest(fixed)
+```
+
+```{r, echo=F}
+# Lower_secondary_completion_rate
+model1.1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                School_enrollment + Unemployment_int + Unsentenced + Police,
+                data = df, 
+                index=c("Country", "Year"),
+                model="within")
+
+## Police
+model1.2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                 School_enrollment + Unemployment_int + Unsentenced,
+                data = df, 
+                index=c("Country", "Year"),
+                model="within")
+
+## Inequality
+model1.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
+                  School_enrollment + Unemployment_int + Unsentenced,
+                data = df, 
+                index=c("Country", "Year"),
+                model="within")
+```
+
+## General-to-specific procedure {.smaller}
+
+```{r, echo=F}
+coeftest(fixed)
+```
+
+## General-to-specific procedure {.smaller}
+
+```{r, echo=F}
+coeftest(model1.1)
+```
+
+* <del> Lower_secondary_completion_rate
+
+## General-to-specific procedure {.smaller}
+
+```{r, echo=F}
+coeftest(model1.2)
+```
+
+* <del> Lower_secondary_completion_rate
+* <del> Police
+
+## General-to-specific procedure {.smaller}
+
+```{r, echo=F}
+coeftest(model1.3)
+```
+
+* <del> Lower_secondary_completion_rate
+* <del> Police
+* <del> Inequality
+
+## Model diagnostic
+
+```{r}
+model_diagnostic(model1.3)
+```
+
+$$ $$
+$$ \Rightarrow \text{appropriate robust estimator needed} $$
+
+## Robust estimator
+
+```{r}
+coeftest(model1.3, 
+         vcovHC(model1.3, method = "arellano", type="HC0", cluster = "time"))
+```
+
+## Bachelor thesis model
+
+```{r}
+model_Bachelor <- plm(ln_Homicide ~ Inequality + ln_GDP_per_capita + 
+                        School_enrollment + Police + Unsentenced,
+                      data = df, 
+                      index = c("Country", "Year"),
+                      model = "within")
+```
+
+```{r, echo=F}
+model_diagnostic(model_Bachelor)
+```
+
+## {.smaller}
+
+```{r, echo=F}
+library(stargazer)
+
+model1.final <- coeftest(model1.3, vcovHC(model1.3, method = "arellano", type="HC0", cluster = "time"))
+
+model_Bachelor.final <- coeftest(model_Bachelor, vcovHC(model_Bachelor, method = "arellano", type="HC0", cluster = "time"))
+
+stargazer(model_Bachelor.final, model1.final, type="text", colnames = TRUE, column.labels = c("Bachelor","Reproduction"), font.size = "tiny")
+```
+
+## Hypothesis comparison ??
 
 # Thank you for your attention! 
 
