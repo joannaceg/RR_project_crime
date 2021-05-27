@@ -1,68 +1,175 @@
 ---
-title: "Reproducible research - determinants of crime"
-author: "Joanna Ceglińska, Szymon Groszkiewicz"
-date: "26th of May, 2021"
+title: "Economic determinants <br> of crime in the world"
+subtitle: "Reproducible Research project"
+author: "Joanna Ceglińska & Szymon Groszkiewicz"
+date: "27th of May, 2021"
 output:
-    ioslides_presentation:
+  ioslides_presentation:
     highlight: tango
     incremental: true
     widescreen: true
-    smaller: true
-    logo: logo2.png
+    # smaller: true
+#    logo: logo2.png
 
 ---
 
 <style>
 .column-left{
   float: left;
-  width: 33%;
+  width: 40%;
   text-align: left;
 }
 .column-right{
   float: right;
-  width: 33%;
+  width: 60%;
   text-align: left;
 }
 </style>
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
 library(knitr)
 library(kableExtra)
+library(bestNormalize)
+library(dplyr)
+library(GGally)
+library(ggplot2)
+library(gplots)
+library(lmtest)
+library(plm)
 ```
 
+```{r, echo=F}
+data <- read.csv("Data/data_no_missings.csv", header = T)
 
-## Introduction
+data$X <- NULL
 
-**Aim of the project:**
+# Shortening names of the columns
+colnames(data) <- c("Country", "Year", "Homicide", "Inequality", "Education_years", "GDP_per_capita",
+                    "Lower_secondary_completion_rate", "RnD_expenditure", "School_enrollment", 
+                    "Unemployment", "Urbanization_rate","Unsentenced", "Police")
 
-Reproduce the results of a bachelor thesis study prepared in 2019 by Joanna Ceglinska and extend the research
+df <- data %>%
+  select(Country, Year, Homicide, Inequality, Education_years, 
+         GDP_per_capita, Lower_secondary_completion_rate, 
+         School_enrollment, Unemployment, Unsentenced, Police) %>%
+  filter(Year %in% 2003:2015)
 
-**Modifications:**
+# Data transformation
+df$ln_Homicide <- log(df$Homicide)
+df$ln_GDP_per_capita <- log(df$GDP_per_capita)
+df$Unemployment_int <- cut(df$Unemployment,
+                           breaks = c(0,5.5,8.5,Inf),
+                           labels = c("_low", "_medium","_high"))
 
-* different software (R instead of STATA)
+```
 
-* bigger dataset (added two more years and added two variables) 
+```{r, echo=F}
+stats_table <- function(fixed, random, pols, sig.level = 0.05) {
+  
+  library(dplyr)
+  library(kableExtra)
+  library(knitr)
+  library(plm)
+  
+    
+  # Breusch-Pagan Lagrange Multiplier test for random effects
+  random_effects <- plmtest(pols, type=c("bp"))
+  
+  random_effects_con <- ifelse(random_effects$p.value < sig.level, "significant random effects", "insignificant random effects")
+  
+  # F test for individual fixed effects
+  fixed_effects <- pFtest(fixed, pols)
+  
+  fixed_effects_con <- ifelse(fixed_effects$p.value < sig.level, "significant fixed effects", "insignificant fixed effects")
+  
+  # Breusch-Pagan Lagrange Multiplier test for time-fixed effects
+  time_fixed_effects <- plmtest(fixed, c("time"), type=("bp"))
+  
+  time_fixed_effects_con <- ifelse(time_fixed_effects$p.value < sig.level, "time-fixed effects needed", "no time-fixed effects needed")
 
-* new method of missing data imputation
+  # Hausmann test
+  hausmann <- phtest(fixed, random)
+  
+  hausmann_con <- ifelse(hausmann$p.value < sig.level, "choose fixed effects model", "choose random effects model")
+  
+  
+    
+  # Data frame result
+  result <- data.frame(test = c("Breusch-Pagan LM test for random effects",
+                                "F test for individual fixed effects",
+                                "Breusch-Pagan LM test for time-fixed effects",
+                                "Hausmann test"
+                                ),
+                       p.value = c(random_effects$p.value, fixed_effects$p.value, 
+                                   time_fixed_effects$p.value, hausmann$p.value) %>% 
+                         round(4),
+                       conclusion = c(random_effects_con, fixed_effects_con,
+                                      time_fixed_effects_con, hausmann_con) ,
+                       row.names = NULL
+                       )
+  result$p.value <- ifelse(result$p.value == 0, "< 0.0001" , result$p.value)
+  
+  
+  return(result %>% 
+           kable(format = "html", align = "c") %>%
+           kable_styling(bootstrap_options = c("striped","hover"),
+                full_width = T, position = "center",
+                font_size = 14))
+}
+```
 
-* implementing more advanced methods of data analysis and visualization
+## The aim of the project
+
+* **Reproduce** and **replicate** the results of a bachelor thesis study prepared in 2019 by Joanna Ceglińska (one of the project's authors).
+
+$$ $$
+
+More precisely:
+
+* we decided to check whether, based on the same initial data, we will obtain the same results,
+
+* and whether the results are **robust** to changes in the initial assumptions and to expanding the dataset.
+
+## Main modifications
+
+* Different software (R instead of STATA)
+
+* New method of missing data imputation
+
+* Extension of the dataset with new observations (from 2 consecutive years)
+
+* Extension of the dataset with two new variables
+
+* Implementing more advanced methods of data analysis and visualization
 
 
-## The dataset comparison 
+## Analyzing problem
 
-**Common characteristics:**
+sth about crime (shortly) maybe this great plot ?
 
-* 48 countries (the full list is available in the report)
+```{r , echo=FALSE, out.width = '80%', fig.align='center'}
+plotmeans(Homicide ~ Year, main="Heterogeineity across years", data=data)
+```
+
+## The dependent variable
+
+sth about dependent variable (maybe definition? plot + log-transformation ?)
+
+## Data
+
+<!-- **Common characteristics:** -->
+
+* 48 countries
 
 * Homicide rate as the dependent variable
 
-
-**Differences:**
+$$ $$
+<!-- **Differences:** -->
 
 <div class="column-left">
- **Original**
+ **Original dataset**
 
 * Years 2003-2015
 * 8 independent variables
@@ -70,25 +177,29 @@ Reproduce the results of a bachelor thesis study prepared in 2019 by Joanna Cegl
 
 </div>
 <div class="column-right">
-**Extended**
+**Extended dataset**
 
 * Years 2003-2017 
-* Two additional variables (10 in total): 
-  1. Research and development expenditure 
-  2. Percentage of urban population in total
+* Two additional variables (10 in total):
+ <!-- Maybe 8 + 2 independent variables ? -->
+  - Research and development expenditure 
+  - Urbanization rate
 * 720 observations in total
 
 </div>
 
 ```{r , echo=FALSE, out.width = '100%', fig.align='center'}
-knitr::include_graphics("df_differences.png")
+# knitr::include_graphics("df_differences.png")
 ```
 
+## Independent variables 
+
+full names; what they refer to
 
 ## Data sources
 
 ```{r , echo=FALSE, out.width = '100%', fig.align='center'}
-knitr::include_graphics("df_desc.png")
+# knitr::include_graphics("df_desc.png")
 ```
 
 Additional sources:
@@ -98,8 +209,51 @@ For the variable Reseach and development expenditure (Dominican Republic, 2013)
 Turkey tertiary school enrollment
 *Knoema.com*
 
+## Hypothesis
 
+colors (green and red?)
 
+## Filling missings story
+
+How was earlier, how now? Why now better?
+
+# Reproduction
+
+## The schema of model selection
+
+short description and the schema from the Internet?
+
+## Reproduction - model selection
+
+```{r, echo=F}
+# fixed effects model
+fixed <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+             Lower_secondary_completion_rate + School_enrollment + 
+             Unemployment_int + Unsentenced + Police,
+             data = df, 
+             index=c("Country", "Year"),
+             model="within")
+
+# random effects model
+random <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+               Lower_secondary_completion_rate + School_enrollment + 
+               Unemployment_int + Unsentenced + Police,
+             data = df, 
+             index=c("Country", "Year"),
+             model="random")
+
+# POLS
+pols <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+              Lower_secondary_completion_rate + School_enrollment + 
+              Unemployment_int + Unsentenced + Police,
+            data = df,
+            index=c("Country", "Year"),
+            model="pooling")
+
+stats_table(fixed,random, pols)
+```
+
+why such a table??
 
 # Thank you for your attention! 
 
