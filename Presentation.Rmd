@@ -6,7 +6,7 @@ date: "27th of May, 2021"
 output:
   ioslides_presentation:
     highlight: tango
-    incremental: true
+    # incremental: true
     widescreen: true
     # smaller: true
 #    logo: logo2.png
@@ -25,7 +25,7 @@ output:
   text-align: left;
 }
 .reduced{
-  font-size: 0.3em;
+  font-size: 16px;
 }
 </style>
 
@@ -67,6 +67,29 @@ df$Unemployment_int <- cut(df$Unemployment,
                            breaks = c(0,5.5,8.5,Inf),
                            labels = c("_low", "_medium","_high"))
 
+df2 <- data %>%
+  select(Country, Year, Homicide, Inequality, Education_years, 
+         GDP_per_capita, Lower_secondary_completion_rate, 
+         School_enrollment, Unemployment, Unsentenced, Police)
+
+df2$ln_Homicide <- log(df2$Homicide)
+df2$ln_GDP_per_capita <- log(df2$GDP_per_capita)
+df2$Unemployment_int <- cut(df2$Unemployment,
+                           breaks = c(0,5.5,8.5,Inf),
+                           labels = c("_low", "_medium","_high"))
+
+df3 <- data %>%
+  select(Country, Year, Homicide, Inequality, Education_years, 
+         GDP_per_capita, Lower_secondary_completion_rate, 
+         School_enrollment, Unemployment, Unsentenced, Police,
+         Urbanization_rate, RnD_expenditure)
+
+df3$ln_Homicide <- log(df3$Homicide)
+df3$ln_GDP_per_capita <- log(df3$GDP_per_capita)
+df3$Unemployment_int <- cut(df3$Unemployment,
+                            breaks = c(0,5.5,8.5,Inf),
+                            labels = c("_low", "_medium","_high"))
+df3$ln_RnD_expenditure <- log(df3$RnD_expenditure)
 ```
 
 ```{r, echo=F}
@@ -128,7 +151,7 @@ stats_table <- function(fixed, random, pols, sig.level = 0.05) {
 }
 
 
-model_diagnostic <- function(model, sig.level = 0.05) {
+model_diagnostic <- function(model, data = data, sig.level = 0.05) {
   
   library(dplyr)
   library(kableExtra)
@@ -154,7 +177,7 @@ model_diagnostic <- function(model, sig.level = 0.05) {
   
   # Breusch-Pagan test for heteroskedasticity
   d <- bptest(model$formula,
-              data = df,
+              data = data,
               studentize=F)
   
   d_con <- ifelse(d$p.value < sig.level, "heteroskedasticity", "homoskedasticity")
@@ -197,7 +220,7 @@ More precisely:
 
 * and whether the results are **robust** to changes in the initial assumptions and to expanding the dataset.
 
-## Main modifications
+## Main modifications {.build}
 
 * Different software (R instead of STATA)
 
@@ -388,7 +411,7 @@ coeftest(model1.3)
 ## Model diagnostic
 
 ```{r}
-model_diagnostic(model1.3)
+model_diagnostic(model1.3, data = df)
 ```
 
 $$ $$
@@ -412,11 +435,12 @@ model_Bachelor <- plm(ln_Homicide ~ Inequality + ln_GDP_per_capita +
 ```
 
 ```{r, echo=F}
-model_diagnostic(model_Bachelor)
+model_diagnostic(model_Bachelor, data = df)
 ```
 
 ## {.smaller}
 
+<center>
 ```{r, echo=F}
 library(stargazer)
 
@@ -424,10 +448,193 @@ model1.final <- coeftest(model1.3, vcovHC(model1.3, method = "arellano", type="H
 
 model_Bachelor.final <- coeftest(model_Bachelor, vcovHC(model_Bachelor, method = "arellano", type="HC0", cluster = "time"))
 
-stargazer(model_Bachelor.final, model1.final, type="text", colnames = TRUE, column.labels = c("Bachelor","Reproduction"), font.size = "tiny")
+stargazer(model_Bachelor.final, model1.final, type="text", colnames = TRUE, column.labels = c("Bachelor","Reproduction"), no.space = T)
+
 ```
+</center>
 
 ## Hypothesis comparison ??
+
+
+# Replication | <br> + 2 years / 96 observations
+
+## Model selection
+
+```{r, echo=F}
+# fixed effects model
+fixed2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                Lower_secondary_completion_rate + School_enrollment + 
+                Unemployment_int + Unsentenced + Police,
+              data = df2, 
+              index=c("Country", "Year"),
+              model="within")
+
+# random effects model
+random2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                 Lower_secondary_completion_rate + School_enrollment + 
+                 Unemployment_int + Unsentenced + Police,
+               data = df2, 
+               index=c("Country", "Year"),
+               model="random")
+
+# POLS
+pols2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+               Lower_secondary_completion_rate + School_enrollment + 
+               Unemployment_int + Unsentenced + Police,
+             data = df2,
+             index=c("Country", "Year"),
+             model="pooling")
+
+stats_table(fixed2, random2, pols2)
+```
+
+$$ $$
+$$ \Rightarrow \text{we choose} \mathbf{\text{ fixed effects model}} $$
+
+## Fixed effects model {.smaller}
+
+```{r, echo=F}
+a <- summary(fixed2)
+a$formula
+coeftest(fixed2)
+```
+
+```{r, echo=F}
+model2.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
+                  School_enrollment + Unemployment_int + Unsentenced,
+                data = df2, 
+                index=c("Country", "Year"),
+                model="within")
+```
+
+## General-to-specific procedure {.smaller}
+
+```{r, echo=F}
+coeftest(model2.3)
+```
+
+* <del> Lower_secondary_completion_rate
+* <del> Police
+* <del> Inequality
+
+## Model diagnostic
+
+```{r}
+model_diagnostic(model2.3, data = df2)
+```
+
+$$ $$
+$$ \Rightarrow \text{appropriate robust estimator needed} $$
+
+## {.smaller}
+
+<center>
+```{r, echo=F}
+model2.final <- coeftest(model2.3, vcovHC(model2.3, method = "arellano", type="HC0", cluster = "time"))
+
+stargazer(model2.3, model2.final, type="text", colnames = TRUE, column.labels = c("","with robust estimator"), no.space = T)
+
+```
+</center>
+
+
+# Replication | <br> + 2 years / 96 observations <br> + 2 independent variables
+
+## Model selection
+
+```{r, echo=F}
+# fixed effects model
+fixed3 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                Lower_secondary_completion_rate + School_enrollment + 
+                Unemployment_int + Unsentenced + Police + Urbanization_rate + ln_RnD_expenditure,
+              data = df3, 
+              index=c("Country", "Year"),
+              model="within")
+
+# random effects model
+random3 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                 Lower_secondary_completion_rate + School_enrollment + 
+                 Unemployment_int + Unsentenced + Police + Urbanization_rate + ln_RnD_expenditure,
+               data = df3, 
+               index=c("Country", "Year"),
+               model="random")
+
+# POLS
+pols3 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+               Lower_secondary_completion_rate + School_enrollment + 
+               Unemployment_int + Unsentenced + Police + Urbanization_rate + ln_RnD_expenditure,
+             data = df3,
+             index=c("Country", "Year"),
+             model="pooling")
+
+stats_table(fixed3, random3, pols3)
+```
+
+$$ $$
+$$ \Rightarrow \text{we choose} \mathbf{\text{ fixed effects model}} $$
+
+## Fixed effects model {.smaller}
+
+```{r, echo=F}
+a <- summary(fixed3)
+a$formula
+coeftest(fixed3)
+```
+
+```{r, echo=F}
+model3.4 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
+                  School_enrollment + Unemployment_int + Unsentenced + Urbanization_rate,
+                data = df3, 
+                index=c("Country", "Year"),
+                model="within")
+```
+
+## General-to-specific procedure {.smaller}
+
+```{r, echo=F}
+coeftest(model3.4)
+```
+
+* <del> Lower_secondary_completion_rate
+* <del> Police
+* <del> Inequality
+* <del> ln_RnD_expenditure
+
+## Model diagnostic
+
+```{r}
+model_diagnostic(model3.4, data = df3)
+```
+
+$$ $$
+$$ \Rightarrow \text{appropriate robust estimator needed} $$
+
+## {.smaller}
+
+<center>
+```{r, echo=F}
+model3.final <- coeftest(model3.4, vcovHC(model3.4, method = "arellano", type="HC0", cluster = "time"))
+
+stargazer(model3.4, model3.final, type="text", colnames = TRUE, column.labels = c("","with robust estimator"), no.space = T)
+
+```
+</center>
+
+# Conclusion
+
+## {.smaller}
+
+<center>
+```{r, echo=F}
+stargazer(model_Bachelor.final, model1.final, model2.final, model3.final, 
+          type="text", colnames = TRUE, 
+          column.labels = c("Bachelor","Reproduction","Replication 1", "Replication 2"), no.space = T)
+
+```
+</center>
+
+## Conclusions
+
 
 # Thank you for your attention! 
 
