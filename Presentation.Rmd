@@ -723,13 +723,13 @@ stargazer(model_Bachelor.final, model1.final, model2.final, model3.final,
 ## Verification of hypotheses
 
 ```{r, echo=F}
-hyp <- data.frame(H = c("income inequality", "GDP per capita", "the level of education",
-                        "the ease of detecting a crime", "poor labor market conditions",
-                        "the effectiveness of the justice system"),
-                  Bachelor_thesis = c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE),
-                  Reproduction = c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE),
-                  Replication_1 = c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE),
-                  Replication_2 = c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE)
+hyp <- data.frame(H = c("Income inequality", "GDP per capita", "The level of education (basic)", "The level of education (tertiary)", 
+                        "The ease of detecting a crime", "Poor labor market conditions",
+                        "The effectiveness of the justice system"),
+                  Bachelor_thesis = c(TRUE,TRUE,FALSE,TRUE,TRUE,FALSE,TRUE),
+                  Reproduction = c(FALSE,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE),
+                  Replication_1 = c(FALSE,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE),
+                  Replication_2 = c(FALSE,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE)
                   )
 
 colnames(hyp)[1] <- "Hypothesis connected with"
