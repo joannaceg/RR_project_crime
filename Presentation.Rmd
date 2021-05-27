@@ -206,7 +206,7 @@ model_diagnostic <- function(model, data = data, sig.level = 0.05) {
   
   return(result %>% 
            kbl(booktabs = T) %>%
-           kable_material_dark(full_width = F, bootstrap_options = c("hover"),
+           kable_material_dark(full_width = F, bootstrap_options = c("hover"), color = "white",
                                font_size = 20)
   )
 }
@@ -246,7 +246,6 @@ The main concern - poor economic situation in countries in Latin America.
 Venezuela: an economic power after WWII, now it struggles with murders, kidnapping, drug dealing and other crimes.
 
 Aren't countries like the United States, Germany or Switzerland in danger of a similar situation?
-
 
 ```{r , echo=FALSE, out.width = '55%', fig.align='center'}
 plotmeans(Homicide ~ Year, main="Heterogeineity across years", data=data)
@@ -399,7 +398,9 @@ Advantages:
 
 ## The schema of model selection
 
-short description and the schema from the Internet?
+```{r , echo=FALSE, out.width = '45%', fig.align='center'}
+knitr::include_graphics("model_selection_schema.png")
+```
 
 ## Reproduction - model selection
 
@@ -715,7 +716,7 @@ stargazer(model3.4, model3.final, type="text", colnames = TRUE, column.labels = 
 ```{r, echo=F}
 stargazer(model_Bachelor.final, model1.final, model2.final, model3.final, 
           type="text", colnames = TRUE, 
-          column.labels = c("Bachelor","Reproduction","Replication 1", "Replication 2"), no.space = T)
+          column.labels = c("Bachelor","Reproduction","Replication_1", "Replication_2"), no.space = T)
 
 ```
 </center>
