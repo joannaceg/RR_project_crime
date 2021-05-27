@@ -243,7 +243,12 @@ plotmeans(Homicide ~ Year, main="Heterogeineity across years", data=data)
 
 ## The dependent variable
 
-sth about dependent variable (maybe definition? plot + log-transformation ?)
+The dependent variable in the study is the **homicide rate**, i.e. the estimated number of homicides per 100,000 inhabitants. Homicide is defined as the deliberate death of another person as a result of violence.
+
+```{r, echo=F, fig.align='center'}
+ggplot(data) +
+  geom_histogram(aes(Homicide), fill = "Steelblue", color = "black")
+```
 
 ## Data
 
@@ -297,9 +302,14 @@ For the variable Reseach and development expenditure (Dominican Republic, 2013)
 Turkey tertiary school enrollment
 *Knoema.com*
 
-## Hypothesis
+## Hypothesis (ADD COLORS)
 
-colors (green and red?)
+* Income inequality has a negative effect on the homicide rate.
+* GDP per capita has a negative effect on the homicide rate.
+* The level of education in a country influences crime (the higher the level, the lower the crime).
+* The ease of detecting a crime acts as a deterrent to the decision to commit a crime.
+* Poor labor market conditions in the country have a positive effect on the homicide rate.
+* The effectiveness of the justice system has a positive effect on the homicide rate.
 
 ## Filling missings story
 
@@ -633,8 +643,35 @@ stargazer(model_Bachelor.final, model1.final, model2.final, model3.final,
 ```
 </center>
 
+## Verification of hypotheses
+
+```{r, echo=F}
+hyp <- data.frame(H = c("income inequality", "GDP per capita", "the level of education",
+                        "the ease of detecting a crime", "poor labor market conditions",
+                        "the effectiveness of the justice system"),
+                  Bachelor_thesis = c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE),
+                  Reproduction = c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE),
+                  Replication_1 = c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE),
+                  Replication_2 = c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE)
+                  )
+
+colnames(hyp)[1] <- "Hypothesis connected with"
+
+hyp %>% 
+  kbl(booktabs = T) %>%
+  kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 20)
+```
+
+
 ## Conclusions
 
+* Reproduction and replications gave very similar results to each other.
+
+* Some of the hypotheses in the Bachelor thesis were not verified by our reproducible research.
+
+* Adding Urbanization_rate improved the model and **did** change values of some estimators, but not the general conclusion.
+
+* The project emphasizes the importance of correct data preparation (filling missing values).
 
 # Thank you for your attention! 
 
