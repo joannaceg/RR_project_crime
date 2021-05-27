@@ -15,12 +15,12 @@ output:
 <style>
 .column-left{
   float: left;
-  width: 33%;
+  width: 35%;
   text-align: left;
 }
 .column-right{
   float: right;
-  width: 33%;
+  width: 65%;
   text-align: left;
 }
 </style>
@@ -41,7 +41,7 @@ Reproduce the results of a bachelor thesis study prepared in 2019 by Joanna Cegl
 
 **Modifications:**
 
-* different software (R instead of STATA)
+* different software (R and Python instead of STATA)
 
 * bigger dataset (added two more years and added two variables) 
 
@@ -57,9 +57,6 @@ Reproduce the results of a bachelor thesis study prepared in 2019 by Joanna Cegl
 * 48 countries (the full list is available in the report)
 
 * Homicide rate as the dependent variable
-
-
-**Differences:**
 
 <div class="column-left">
  **Original**
@@ -80,10 +77,6 @@ Reproduce the results of a bachelor thesis study prepared in 2019 by Joanna Cegl
 
 </div>
 
-```{r , echo=FALSE, out.width = '100%', fig.align='center'}
-knitr::include_graphics("df_differences.png")
-```
-
 
 ## Data sources
 
@@ -92,7 +85,7 @@ knitr::include_graphics("df_desc.png")
 ```
 
 Additional sources:
-For the variable Reseach and development expenditure (Dominican Republic, 2013)
+For the variable Research and development expenditure (Dominican Republic, 2013)
 *Guzmán J. & Encarnación C., "Measuring and Promoting (R&D) Expenditure in Manufacturing Companies of High-Tech Healthcare Products in the Dominican Republic" (2015). Thesis. Rochester Institute of Technology*
 
 Turkey tertiary school enrollment
