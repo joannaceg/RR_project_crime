@@ -117,7 +117,7 @@ df$ln_GDP_per_capita <- log(df$GDP_per_capita)
 # We transform it exactly in the same way it was done in the Bachelor thesis.
 df$Unemployment_int <- cut(df$Unemployment,
                            breaks = c(0,5.5,8.5,Inf),
-                           labels = c("low", "medium","high"))
+                           labels = c("_low", "_medium","_high"))
 
 table(df$Unemployment_int)
 # Different frequency!! :O 
@@ -412,6 +412,7 @@ stats_table <- function(fixed, random, pols, sig.level = 0.05) {
   
   library(dplyr)
   library(knitr)
+  library(plm)
   
     
   # Breusch-Pagan Lagrange Multiplier test for random effects
@@ -456,6 +457,67 @@ stats_table <- function(fixed, random, pols, sig.level = 0.05) {
 }
 
 stats_table(fixed,random, pols)
+
+# model_diagnostic() ---------------------------------------------
+
+# Temporary only! Changes required
+
+model_diagnostic <- function(model, sig.level = 0.05) {
+  
+  library(dplyr)
+  library(kableExtra)
+  library(knitr)
+  library(lmtest)
+  library(plm)
+  
+  
+  # Breusch-Pagan LM test for cross-sectional dependence
+  a <- pcdtest(model, test = c("lm"))
+  
+  a_con <- ifelse(a$p.value < sig.level, "cross-sectional dependence", "no cross-sectional dependence")
+  
+  # Pesaran CD test for cross-sectional dependence
+  b <- pcdtest(model, test = c("cd"))
+  
+  b_con <- ifelse(b$p.value < sig.level, "cross-sectional dependence", "no cross-sectional dependence")
+  
+  # Breusch-Godfrey/Wooldridge test for serial correlation
+  c <- pbgtest(model)
+  
+  c_con <- ifelse(c$p.value < sig.level, "serial correlation", "no serial correlation")
+  
+  # Breusch-Pagan test for heteroskedasticity
+  d <- bptest(model$formula,
+              data = df,
+              studentize=F)
+  
+  d_con <- ifelse(d$p.value < sig.level, "heteroskedasticity", "homoskedasticity")
+  
+  
+  # Data frame result
+  result <- data.frame(test = c("Breusch-Pagan LM test for cross-sectional dependence",
+                                "Pesaran CD test for cross-sectional dependence",
+                                "Breusch-Godfrey/Wooldridge test for serial correlation",
+                                "Breusch-Pagan test for heteroskedasticity"
+  ),
+  p.value = c(a$p.value, b$p.value, 
+              c$p.value, d$p.value) %>% 
+    round(4),
+  conclusion = c(a_con, b_con,
+                 c_con, d_con) ,
+  row.names = NULL
+  )
+  result$p.value <- ifelse(result$p.value == 0, "< 0.0001" , result$p.value)
+  
+  
+  return(result %>% 
+           kbl(booktabs = T) %>%
+           kable_material_dark(full_width = F, bootstrap_options = c("hover"),
+                               font_size = 22)
+  )
+}
+
+model_diagnostic(model1.3)
 
 
 # Replication (adding new observations) ----------------------------------------------
@@ -920,9 +982,6 @@ stargazer(model_Bachelor, model1.3, model2.3, model3.4, type="text")
 
 # This one should be displyed, but it lack of statistics... how to change it?
 stargazer(model_Bachelor, model1.final, model2.final, model3.final, type="text")
-
-
-
 
 
 
