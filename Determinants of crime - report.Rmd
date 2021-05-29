@@ -1,0 +1,217 @@
+---
+title: "Determinants of crime - report"
+author: "Joanna Ceglinska, Szymon Groszkiewicz"
+date: "26th of May, 2021"
+output:
+  html_document:
+    theme: yeti
+    in_header: header.html
+    include: null
+    self_contained: yes
+    smooth_scroll: yes
+    toc: no
+    toc_float: no
+    
+      
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+# install.packages("pandoc")
+library(knitr)
+library(dplyr)
+library(data.table)
+library(kableExtra)
+library(bestNormalize)
+library(GGally)
+library(ggplot2)
+library(gplots)
+library(lmtest)
+library(plm)
+```
+
+```{r, echo=F}
+data <- read.csv("Data/data_no_missings.csv", header = T)
+
+data$X <- NULL
+
+# Shortening names of the columns
+colnames(data) <- c("Country", "Year", "Homicide", "Inequality", "Education_years", "GDP_per_capita",
+                    "Lower_secondary_completion_rate", "RnD_expenditure", "School_enrollment", 
+                    "Unemployment", "Urbanization_rate","Unsentenced", "Police")
+
+df <- data %>%
+  select(Country, Year, Homicide, Inequality, Education_years, 
+         GDP_per_capita, Lower_secondary_completion_rate, 
+         School_enrollment, Unemployment, Unsentenced, Police) %>%
+  filter(Year %in% 2003:2015)
+
+# Data transformation
+df$ln_Homicide <- log(df$Homicide)
+df$ln_GDP_per_capita <- log(df$GDP_per_capita)
+df$Unemployment_int <- cut(df$Unemployment,
+                           breaks = c(0,5.5,8.5,Inf),
+                           labels = c("_low", "_medium","_high"))
+
+df2 <- data %>%
+  select(Country, Year, Homicide, Inequality, Education_years, 
+         GDP_per_capita, Lower_secondary_completion_rate, 
+         School_enrollment, Unemployment, Unsentenced, Police)
+
+df2$ln_Homicide <- log(df2$Homicide)
+df2$ln_GDP_per_capita <- log(df2$GDP_per_capita)
+df2$Unemployment_int <- cut(df2$Unemployment,
+                           breaks = c(0,5.5,8.5,Inf),
+                           labels = c("_low", "_medium","_high"))
+
+df3 <- data %>%
+  select(Country, Year, Homicide, Inequality, Education_years, 
+         GDP_per_capita, Lower_secondary_completion_rate, 
+         School_enrollment, Unemployment, Unsentenced, Police,
+         Urbanization_rate, RnD_expenditure)
+
+df3$ln_Homicide <- log(df3$Homicide)
+df3$ln_GDP_per_capita <- log(df3$GDP_per_capita)
+df3$Unemployment_int <- cut(df3$Unemployment,
+                            breaks = c(0,5.5,8.5,Inf),
+                            labels = c("_low", "_medium","_high"))
+df3$ln_RnD_expenditure <- log(df3$RnD_expenditure)
+```
+
+## Introduction
+
+The aim of this project is to reproduce the results of a bachelor thesis study prepared in 2019 by Joanna Ceglinska (one of the authors) and extend the research by using different software, bigger dataset and by implementing more advanced methods of data analysis and visualization. 
+The topic of the original study was investigating the determinants of crime using panel data of 48 countries for the years 2003-2015. The dependent variable was the homicide rate and independent variables included the Gini index, GDP per capita, unemployment rate, variables responsible for measuring the education level in a country and a regressor which presents the effectiveness of judicial system (Unsentenced detainees as a proportion of overall prison population).
+
+
+---
+
+# An empirical research
+
+### Main implemented modifications
+
+We have decided to not only replicate the previous research, but also extend it and perform the analysis using different software. Previously, the main tools in the study were Microsoft Excel (for the data tranformations and filling the missing observations) and STATA for statistical and econometric research. Now, we have used R and Python for the regressions and data visualisation.
+
+We have also implemented a new method of missing data imputation - previous work included manual imputation of all missing values, whereas now we use an automated function that have performed this task. The full description of the algorithm is presented in the subsequent section of the report. 
+
+In our research, we extended the dataset by two years and two variables. The original dataset included the years 2003-2015 and we appended the years 2016 and 2017 to the database. Additional variables were the research and development expenditures and the urbanization rate. 
+
+
+### The dependent variable
+
+The variable responsible for the represenation of crime is the **homicide rate**, which is the number of deaths caused by another person's violence (per 100,000 population). It is worth noting, that a homicide is not equivalent to murder - it does not have to result from the intention of causing harm - it can also be a consequence of an accident or reckless acts.
+
+This variable was chosen because is a serious violent crime, that causes a significant harm to other people. It is one of the few crimes that is carefully tracked and is not neglected. The investigation associated with this type of crime is usually careful and meticulous. What is more, using a variable associated with a bribe or a financial fraud would be more complicated due to the differences in definitions of those crimes and law regulations among countries.
+
+The distribution of this variable is presented in the plot below. The distribution is highly asymmetrical and skewed towards the left side of the plot - the majority of observations are concentrated around zero. Therefore, we have decided to use a logarithmic transformation of homicide rate in the research. 
+
+
+```{r, echo=F, fig.align='center'}
+ggplot(data) +
+  geom_histogram(aes(Homicide), fill = "Steelblue", color = "black")
+```
+
+The next plot presents how the heterogeneity of the homicide rate has been changing in the presented years 2003-2017. It can be observed, that the heterogeneity decreases with time (from 8.5 to around 6), which means that countries tend to differ less in the homicide rate across the world.
+
+
+```{r , echo=FALSE, out.width = '80%', fig.align='center'}
+plotmeans(Homicide ~ Year, main="Heterogeineity across years", data=data)
+```
+
+### The dataset description
+
+The variables used in the research are presented in the table below. In the second column we show the source of the data, and the last column presents a Worlbank code to quickly find those variables in the database. We choice of determinants was based on the literature review.
+
+Researchers believe, that crime is dependent on the efficiency of the jurisdictional system, the income inequality in a country, an education level, unemployment and the economic condition of a country. Additional variables refer to the society's approach to innovation and education (Pesearch and development expenditure variable) and the urbanization, because more crimes tend to happen in cities than in the rural areas (Percentage of urban population). 
+
+Table 1. The variables used in the research, their source and additional information if available).
+
+```{r, echo = FALSE}
+Variable <- c("Homicide rate (per 100,000 population)",
+"Unsentenced detainees as a proportion of overall prison population",
+"Police personnel (per 100,000 population)",
+"Gini index - income inequality measure",
+"Lower secondary completion rate, total (% of relevant age group)",
+"School enrollment,  tertiary (% gross)",
+"Unemployment, total (% of total labor force) (national estimate)",
+"Compulsory education,  duration (years)",
+"GDP per capita (constant 2010 US$)",
+"Research and development expenditure (% of GDP)",
+"Urban population (% of total population)")
+
+Source <- c("United Nations Office on Drugs and Crime (UNODC)", 
+            "United Nations Office on Drugs and Crime (UNODC)", 
+            "United Nations Office on Drugs and Crime (UNODC)",
+            "Standardized World Income Inequality Database (SWIID)",
+            "Worldbank",
+            "Worldbank",
+            "Worldbank",
+            "Worldbank",
+            "Worldbank",
+            "Worldbank",
+            "Worldbank"
+            )
+
+Info <- c("", 
+          "", 
+          "",
+          "",
+          "SE.SEC.CMPT.LO.ZS",
+          "SE.TER.ENRR",
+          "SL.UEM.TOTL.NE.ZS",
+          "SE.COM.DURS",
+          "NY.GDP.PCAP.KD",
+          "GB.XPD.RSDV.GD.ZS",
+          "SP.URB.TOTL.IN.ZS"
+          )
+
+df_desc <- data.frame(Variable, Source, Info)
+
+# knitr::kable(df_desc, col.names = gsub("[.]", " ", names(df_desc)))
+
+df_desc %>%
+  kbl() %>%
+  kable_styling()
+
+
+```
+
+The original dataset included 48 countries and years 2003-2015, whereas the extended dataset also includes years 2016 and 2017 (for the same set of countries). Adding two years and two variables resulted in obtaining 96 observations more than in the base dataset. The summary of the differences can be found in the Table 2. 
+
+Table 2. The summary of the differences between the datasets
+
+```{r, echo = FALSE}
+Original <- c("Years  2003-2015",
+              "8 independent variables",
+              "624 observations in total")
+
+Extended <- c("Years 2003-2017", 
+            "Two additional variables (10 in total): 
+              <br> 1. Research and development expenditure 
+              <br> 2. Percentage of urban population in total",
+            "720 observations in total")
+
+df_differences <- data.frame(Original, Extended)
+
+# knitr::kable(df_differences, col.names = gsub("[.]", " ", names(df_differences)))
+
+df_differences %>%
+  kable("html", escape = FALSE) %>%
+  kable_styling() 
+
+```
+
+### Filling the missing observations
+
+
+
+
+### Research hypotheses
+
+
+
+
+
+
+
+
