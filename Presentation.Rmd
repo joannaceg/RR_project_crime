@@ -206,7 +206,7 @@ model_diagnostic <- function(model, data = data, sig.level = 0.05) {
   
   return(result %>% 
            kbl(booktabs = T) %>%
-           kable_material_dark(full_width = F, bootstrap_options = c("hover"), color = "white",
+           kable_material_dark(full_width = F, bootstrap_options = c("hover"),
                                font_size = 20)
   )
 }
@@ -716,7 +716,7 @@ stargazer(model3.4, model3.final, type="text", colnames = TRUE, column.labels = 
 ```{r, echo=F}
 stargazer(model_Bachelor.final, model1.final, model2.final, model3.final, 
           type="text", colnames = TRUE, 
-          column.labels = c("Bachelor","Reproduction","Replication_1", "Replication_2"), no.space = T)
+          column.labels = c("Bachelor","Reproduction","Replication 1", "Replication 2"), no.space = T)
 
 ```
 </center>
@@ -724,13 +724,13 @@ stargazer(model_Bachelor.final, model1.final, model2.final, model3.final,
 ## Verification of hypotheses
 
 ```{r, echo=F}
-hyp <- data.frame(H = c("income inequality", "GDP per capita", "the level of education",
-                        "the ease of detecting a crime", "poor labor market conditions",
-                        "the effectiveness of the justice system"),
-                  Bachelor_thesis = c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE),
-                  Reproduction = c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE),
-                  Replication_1 = c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE),
-                  Replication_2 = c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE)
+hyp <- data.frame(H = c("Income inequality", "GDP per capita", "The level of education (basic)", "The level of education (tertiary)", 
+                        "The ease of detecting a crime", "Poor labor market conditions",
+                        "The effectiveness of the justice system"),
+                  Bachelor_thesis = c("\\+","\\+","–","\\+","\\+","–","\\+"),
+                  Reproduction = c("–","\\+","\\+","\\+","–","\\+","\\+"),
+                  Replication_1 = c("–","\\+","\\+","\\+","–","\\+","\\+"),
+                  Replication_2 = c("–","\\+","\\+","\\+","–","\\+","\\+")
                   )
 
 colnames(hyp)[1] <- "Hypothesis connected with"
