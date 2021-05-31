@@ -403,12 +403,14 @@ model1.final <- coeftest(model1.3, vcovHC(model1.3, method = "arellano", type="H
 
 
 
-### stats_table() ------------------------------------------------------
+### model_select() ------------------------------------------------------
 
-# The function that returns the matrix of the results obtained by tests necessary
-# in the model choice, taking as arguments all 3 models.
+# The function that returns the table with the results of the tests that are necessary
+# in the model choice. 
+# It takes 4 arguments: fixed effects model object, random effects model object,
+# POLS model object, and significance level ('sig.level') with default value set to 5%.
 
-stats_table <- function(fixed, random, pols, sig.level = 0.05) {
+model_select <- function(fixed, random, pols, sig.level = 0.05) {
   
   library(dplyr)
   library(knitr)
@@ -435,7 +437,6 @@ stats_table <- function(fixed, random, pols, sig.level = 0.05) {
   
   hausmann_con <- ifelse(hausmann$p.value < sig.level, "choose fixed effects model", "choose random effects model")
   
-  
     
   # Data frame result
   result <- data.frame(test = c("Breusch-Pagan LM test for random effects",
@@ -450,13 +451,16 @@ stats_table <- function(fixed, random, pols, sig.level = 0.05) {
                                       time_fixed_effects_con, hausmann_con) ,
                        row.names = NULL
                        )
+  
   result$p.value <- ifelse(result$p.value == 0, "< 0.0001" , result$p.value)
   
   
   return(result %>% knitr::kable(align = "c"))
 }
 
-stats_table(fixed,random, pols)
+model_select(fixed,random, pols)
+
+source("functions/model_select.R")
 
 # model_diagnostic() ---------------------------------------------
 
@@ -588,7 +592,7 @@ pols2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
              model="pooling")
 
 
-stats_table(fixed2, random2, pols2)
+model_select(fixed2, random2, pols2)
 # Both random and fixed effects are significant
 # There is no need for time-fixed effects
 # Hausmann test indicates again to choose fixed effects model
@@ -821,7 +825,7 @@ pols3 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
              model="pooling")
 
 
-stats_table(fixed3, random3, pols3)
+model_select(fixed3, random3, pols3)
 # Both random and fixed effects are significant
 # There is no need for time-fixed effects
 # Hausmann test indicates again to choose fixed effects model

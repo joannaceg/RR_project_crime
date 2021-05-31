@@ -99,7 +99,7 @@ df3$ln_RnD_expenditure <- log(df3$RnD_expenditure)
 ```
 
 ```{r, echo=F}
-stats_table <- function(fixed, random, pols, sig.level = 0.05) {
+model_select <- function(fixed, random, pols, sig.level = 0.05) {
   
   library(dplyr)
   library(kableExtra)
@@ -429,7 +429,7 @@ pols <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
             index=c("Country", "Year"),
             model="pooling")
 
-stats_table(fixed,random, pols)
+model_select(fixed,random, pols)
 ```
 
 $$ $$
@@ -573,7 +573,7 @@ pols2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
              index=c("Country", "Year"),
              model="pooling")
 
-stats_table(fixed2, random2, pols2)
+model_select(fixed2, random2, pols2)
 ```
 
 $$ $$
@@ -655,7 +655,7 @@ pols3 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
              index=c("Country", "Year"),
              model="pooling")
 
-stats_table(fixed3, random3, pols3)
+model_select(fixed3, random3, pols3)
 ```
 
 $$ $$
