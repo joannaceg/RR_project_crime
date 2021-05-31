@@ -6,10 +6,7 @@ date: "27th of May, 2021"
 output:
   ioslides_presentation:
     highlight: tango
-    # incremental: true
     widescreen: true
-    # smaller: true
-    # logo: logo2.png
 
 ---
 
@@ -335,7 +332,7 @@ $$ $$
 ## Data sources
 
 ```{r , echo=FALSE, out.width = '80%', fig.align='center'}
-knitr::include_graphics("df_desc.png")
+knitr::include_graphics("pictures/df_desc.png")
 ```
 
 <div class="small_font14">
@@ -399,7 +396,7 @@ Advantages:
 ## The schema of model selection
 
 ```{r , echo=FALSE, out.width = '45%', fig.align='center'}
-knitr::include_graphics("model_selection_schema.png")
+knitr::include_graphics("pictures/model_selection_schema.png")
 ```
 
 ## Reproduction - model selection
