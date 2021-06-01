@@ -7,6 +7,7 @@ library(bestNormalize)
 library(dplyr)
 library(GGally)
 library(ggplot2)
+library(knitr)
 library(lmtest)
 library(plm)
 
@@ -458,70 +459,70 @@ model_select <- function(fixed, random, pols, sig.level = 0.05) {
   return(result %>% knitr::kable(align = "c"))
 }
 
-model_select(fixed,random, pols)
-
 source("functions/model_select.R")
+
+model_select(fixed,random, pols) %>% knitr::kable(align = "c")
+
 
 # model_diagnostic() ---------------------------------------------
 
 # Temporary only! Changes required
 
-model_diagnostic <- function(model, sig.level = 0.05) {
+model_diagnostic <- function(model, data = data, sig.level = 0.05) {
   
   library(dplyr)
-  library(kableExtra)
-  library(knitr)
   library(lmtest)
   library(plm)
   
   
   # Breusch-Pagan LM test for cross-sectional dependence
-  a <- pcdtest(model, test = c("lm"))
+  cross_sectional_BP <- pcdtest(model, test = c("lm"))
   
-  a_con <- ifelse(a$p.value < sig.level, "cross-sectional dependence", "no cross-sectional dependence")
+  cross_sectional_BP_con <- ifelse(cross_sectional_BP$p.value < sig.level, "cross-sectional dependence", "no cross-sectional dependence")
   
   # Pesaran CD test for cross-sectional dependence
-  b <- pcdtest(model, test = c("cd"))
+  cross_sectional_P <- pcdtest(model, test = c("cd"))
   
-  b_con <- ifelse(b$p.value < sig.level, "cross-sectional dependence", "no cross-sectional dependence")
+  cross_sectional_P_con <- ifelse(cross_sectional_P$p.value < sig.level, "cross-sectional dependence", "no cross-sectional dependence")
   
   # Breusch-Godfrey/Wooldridge test for serial correlation
-  c <- pbgtest(model)
+  serial_correlation <- pbgtest(model)
   
-  c_con <- ifelse(c$p.value < sig.level, "serial correlation", "no serial correlation")
+  serial_correlation_con <- ifelse(serial_correlation$p.value < sig.level, "serial correlation", "no serial correlation")
   
   # Breusch-Pagan test for heteroskedasticity
-  d <- bptest(model$formula,
-              data = df,
-              studentize=F)
+  heteroskedasticity <- bptest(model$formula,
+                               data = data,
+                               studentize=F)
   
-  d_con <- ifelse(d$p.value < sig.level, "heteroskedasticity", "homoskedasticity")
+  heteroskedasticity_con <- ifelse(heteroskedasticity$p.value < sig.level, "heteroskedasticity", "homoskedasticity")
   
   
   # Data frame result
-  result <- data.frame(test = c("Breusch-Pagan LM test for cross-sectional dependence",
-                                "Pesaran CD test for cross-sectional dependence",
-                                "Breusch-Godfrey/Wooldridge test for serial correlation",
-                                "Breusch-Pagan test for heteroskedasticity"
-  ),
-  p.value = c(a$p.value, b$p.value, 
-              c$p.value, d$p.value) %>% 
-    round(4),
-  conclusion = c(a_con, b_con,
-                 c_con, d_con) ,
-  row.names = NULL
+  result <- data.frame(
+    test = c("Breusch-Pagan LM test for cross-sectional dependence",
+             "Pesaran CD test for cross-sectional dependence",
+             "Breusch-Godfrey/Wooldridge test for serial correlation",
+             "Breusch-Pagan test for heteroskedasticity"
+    ),
+    p.value = c(cross_sectional_BP$p.value, cross_sectional_P$p.value, 
+                serial_correlation$p.value, heteroskedasticity$p.value) %>% 
+      round(4),
+    conclusion = c(cross_sectional_BP_con, cross_sectional_P_con,
+                   serial_correlation_con, heteroskedasticity_con),
+    row.names = NULL
   )
+  
   result$p.value <- ifelse(result$p.value == 0, "< 0.0001" , result$p.value)
   
   
-  return(result %>% 
-           kbl(booktabs = T) %>%
-           kable_material_dark(full_width = F, bootstrap_options = c("hover"),
-                               font_size = 22)
-  )
+  return(result)
+  
 }
 
-model_diagnostic(model1.3)
+model_diagnostic(model1.3) %>% 
+  kbl(booktabs = T) %>%
+  kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 22)
 
 
 # Replication (adding new observations) ----------------------------------------------
@@ -592,7 +593,7 @@ pols2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
              model="pooling")
 
 
-model_select(fixed2, random2, pols2)
+model_select(fixed2, random2, pols2) %>% knitr::kable(align = "c")
 # Both random and fixed effects are significant
 # There is no need for time-fixed effects
 # Hausmann test indicates again to choose fixed effects model
@@ -825,7 +826,7 @@ pols3 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
              model="pooling")
 
 
-model_select(fixed3, random3, pols3)
+model_select(fixed3, random3, pols3) %>% knitr::kable(align = "c")
 # Both random and fixed effects are significant
 # There is no need for time-fixed effects
 # Hausmann test indicates again to choose fixed effects model
@@ -986,6 +987,5 @@ stargazer(model_Bachelor, model1.3, model2.3, model3.4, type="text")
 
 # This one should be displyed, but it lack of statistics... how to change it?
 stargazer(model_Bachelor, model1.final, model2.final, model3.final, type="text")
-
 
 
