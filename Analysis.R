@@ -358,8 +358,32 @@ coeftest(model_Bachelor, vcovHC(model_Bachelor, method = "arellano", type="HC0",
 # Model diagnostic -------------------------------------------------------
 
 # RESET test for plm() model??
+m <- lm(ln_Homicide ~ Education_years + ln_GDP_per_capita + School_enrollment + Unemployment_int + Unsentenced,
+        data	=	df)
+
+resettest(ln_Homicide ~ Inequality + ln_GDP_per_capita + School_enrollment + Police + Unsentenced,
+          power	=	2:3,
+          type	=	"regressor",
+          data	=	df)
+
 
 # test Jarque-Bera - test na normalność rozkładu błędów losowych ??
+library(tseries)
+
+jarque.bera.test(model1.3$residuals)
+
+library(stats)
+
+shapiro.test(model1.3$residuals)
+
+g = model1.3$residuals
+m<-mean(g)
+std<-sqrt(var(g))
+hist(g, density=20, breaks=20, prob=TRUE, 
+     xlab="x-variable",
+     main="normal curve over histogram")
+curve(dnorm(x, mean=m, sd=std), 
+      col="darkblue", lwd=2, add=TRUE, yaxt="n")
 
 
 # Testing for cross-sectional dependence/contemporaneous correlation:
@@ -466,14 +490,18 @@ model_select(fixed,random, pols) %>% knitr::kable(align = "c")
 
 # model_diagnostic() ---------------------------------------------
 
-# Temporary only! Changes required
-
-model_diagnostic <- function(model, data = data, sig.level = 0.05) {
+model_diagnostic <- function(model, sig.level = 0.05) {
   
   library(dplyr)
   library(lmtest)
   library(plm)
+  library(tseries)
+
   
+  # Jarque-Bera LM test for normality of residuals
+  jarque_bera <- jarque.bera.test(model$residuals)
+  
+  jarque_bera_con <- ifelse(jarque_bera$p.value < sig.level, "not normally distributed residuals", "normally distributed residuals")
   
   # Breusch-Pagan LM test for cross-sectional dependence
   cross_sectional_BP <- pcdtest(model, test = c("lm"))
@@ -492,7 +520,7 @@ model_diagnostic <- function(model, data = data, sig.level = 0.05) {
   
   # Breusch-Pagan test for heteroskedasticity
   heteroskedasticity <- bptest(model$formula,
-                               data = data,
+                               data = model$model,
                                studentize=F)
   
   heteroskedasticity_con <- ifelse(heteroskedasticity$p.value < sig.level, "heteroskedasticity", "homoskedasticity")
@@ -500,15 +528,16 @@ model_diagnostic <- function(model, data = data, sig.level = 0.05) {
   
   # Data frame result
   result <- data.frame(
-    test = c("Breusch-Pagan LM test for cross-sectional dependence",
+    test = c("Jarque-Bera LM test for normality of residuals",
+             "Breusch-Pagan LM test for cross-sectional dependence",
              "Pesaran CD test for cross-sectional dependence",
              "Breusch-Godfrey/Wooldridge test for serial correlation",
              "Breusch-Pagan test for heteroskedasticity"
     ),
-    p.value = c(cross_sectional_BP$p.value, cross_sectional_P$p.value, 
+    p.value = c(jarque_bera$p.value, cross_sectional_BP$p.value, cross_sectional_P$p.value, 
                 serial_correlation$p.value, heteroskedasticity$p.value) %>% 
       round(4),
-    conclusion = c(cross_sectional_BP_con, cross_sectional_P_con,
+    conclusion = c(jarque_bera_con, cross_sectional_BP_con, cross_sectional_P_con,
                    serial_correlation_con, heteroskedasticity_con),
     row.names = NULL
   )
@@ -519,6 +548,8 @@ model_diagnostic <- function(model, data = data, sig.level = 0.05) {
   return(result)
   
 }
+
+source("functions/model_diagnostic.R")
 
 model_diagnostic(model1.3) %>% 
   kbl(booktabs = T) %>%
