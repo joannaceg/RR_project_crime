@@ -16,22 +16,30 @@ model_select <- function(fixed, random, pols, sig.level = 0.05) {
   # Breusch-Pagan Lagrange Multiplier test for random effects
   random_effects <- plmtest(pols, type=c("bp"))
   
-  random_effects_con <- ifelse(random_effects$p.value < sig.level, "significant random effects", "insignificant random effects")
+  random_effects_con <- ifelse(random_effects$p.value < sig.level,
+                               "significant random effects",
+                               "insignificant random effects")
   
   # F test for individual fixed effects
   fixed_effects <- pFtest(fixed, pols)
   
-  fixed_effects_con <- ifelse(fixed_effects$p.value < sig.level, "significant fixed effects", "insignificant fixed effects")
+  fixed_effects_con <- ifelse(fixed_effects$p.value < sig.level,
+                              "significant fixed effects",
+                              "insignificant fixed effects")
   
   # Breusch-Pagan Lagrange Multiplier test for time-fixed effects
   time_fixed_effects <- plmtest(fixed, c("time"), type=("bp"))
   
-  time_fixed_effects_con <- ifelse(time_fixed_effects$p.value < sig.level, "time-fixed effects needed", "no time-fixed effects needed")
+  time_fixed_effects_con <- ifelse(time_fixed_effects$p.value < sig.level,
+                                   "time-fixed effects needed",
+                                   "no time-fixed effects needed")
   
   # Hausmann test
   hausmann <- phtest(fixed, random)
   
-  hausmann_con <- ifelse(hausmann$p.value < sig.level, "choose fixed effects model", "choose random effects model")
+  hausmann_con <- ifelse(hausmann$p.value < sig.level,
+                         "choose fixed effects model",
+                         "choose random effects model")
   
   
   # Data frame result
@@ -53,4 +61,5 @@ model_select <- function(fixed, random, pols, sig.level = 0.05) {
   
   
   return(result)
+
 }
