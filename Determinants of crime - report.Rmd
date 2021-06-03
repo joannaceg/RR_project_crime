@@ -721,8 +721,9 @@ model1.final <- coeftest(model1.3, vcovHC(model1.3, method = "arellano", type="H
 model_BA.final <- coeftest(model_BA, vcovHC(model_BA, method = "arellano", type="HC0", cluster = "time"))
 
 stargazer(model_BA.final, model1.final,
-          type = "html", column.labels = c("Bachelor","Reproduction"),
-          title = "BA model vs. reproduction model", column.sep.width = "10px")
+          type = "html",
+          column.labels = c("Bachelor","Reproduction"),
+          title = "BA model vs. reproduction model")
 
 ```
 </center>
@@ -957,7 +958,7 @@ h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1),c(1,0,0,0,0,0,0,0,0))
 wald.test(b = coef(fixed2), Sigma = vcov(fixed2), L = h)
 ```
 
-We fail to reject the null hypothesis regarding the introduced constraints. Therefore, we can also drop *Inequality*, which contradicts literature. The model without these variables is as follows:
+We fail to reject the null hypothesis regarding the introduced constraints. Therefore, we can also drop *Inequality*. The model without these variables is as follows:
 
 <center>
 ```{r, echo=F, results = 'asis'}
@@ -1085,6 +1086,8 @@ Having applied Box-Cox transformation for this variable, we got the result that 
 
 In this part, we estimate fixed effects model, random effects model and POLS model. This time we obviously use the extended dataset with all years and two new variables.
 
+As one can notice, we decided to show the case in which we have chosen log-transformed *RnD_expenditure* variable, not the interval one. Actually, we tested both of these approaches and both boiled down to the same result, which is presented shown in the *General-to-specific procedure* section.
+
 ```{r}
 # fixed effects model
 fixed3 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
@@ -1128,157 +1131,203 @@ Effects are significant in both random and fixed effects models. Additionally, t
 This means that for the third time (reproduction and two replication parts) we obtained the results indicating fixed effects model to be chosen, which seems to be good from the reproducible perspective.
 
 
-<!-- ## General-to-specific procedure {.tabset .tabset-fade .tabset-pills} -->
+## General-to-specific procedure {.tabset .tabset-fade .tabset-pills}
 
-<!-- Due to the results obtained above, we are focusing on the fixed effects model. Since it contains insignificant variables, we perform a *from-general-to-specific* procedure to get rid of them from the model. -->
+Due to the results obtained above, we are for the third time focusing on the fixed effects model. It so far contains insignificant variables, therefore we perform a *from-general-to-specific* procedure to get rid of them from the model.
 
-<!-- ### Base model -->
+### Base model
 
-<!-- Let us take a look at the base model. -->
+Let us take a look at the base model.
 
-<!-- <center> -->
-<!-- ```{r, echo=F, results = 'asis'} -->
-<!-- stargazer(fixed3, type = "html", single.row = T, report = "vcs*") -->
-<!-- ``` -->
-<!-- </center> -->
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(fixed3, type = "html", single.row = T, report = "vcs*")
+```
+</center>
 
-<!-- ### Step 1 -->
+### Step 1
 
-<!-- **Deleting *Lower_secondary_completion_rate* ** -->
+**Deleting *Lower_secondary_completion_rate* **
 
-<!-- First, we generate the model without *Lower_secondary_completion_rate*. -->
+First, we generate the model without *Lower_secondary_completion_rate*.
 
-<!-- ```{r} -->
-<!-- model2.1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita + -->
-<!--                 School_enrollment + Unemployment_int + Unsentenced + Police, -->
-<!--                 data = df3, -->
-<!--                 index=c("Country", "Year"), -->
-<!--                 model="within") -->
-<!-- ``` -->
+```{r}
+model3.1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita + School_enrollment +
+                Unemployment_int + Unsentenced + Police + Urbanization_rate + ln_RnD_expenditure,
+              data = df3,
+              index = c("Country", "Year"),
+              model = "within")
+```
 
-<!-- Next, we check the significance of omitting this variable using Wald test. Namely, we test whether the coefficient of the *Lower_secondary_completion_rate* variable is equal to zero. -->
+Next, we check the significance of omitting this variable using Wald test. Namely, we test whether the coefficient of the *Lower_secondary_completion_rate* variable is equal to zero.
 
-<!-- ```{r, echo=F} -->
-<!-- h <- rbind(c(0,0,0,1,0,0,0,0,0)) -->
+```{r, echo=F}
+h <- rbind(c(0,0,0,1,0,0,0,0,0,0,0))
 
-<!-- wald.test(b = coef(fixed3), Sigma = vcov(fixed3), L = h) -->
-<!-- ``` -->
+wald.test(b = coef(fixed3), Sigma = vcov(fixed3), L = h)
+```
 
-<!-- We fail to reject the null hypothesis regarding the introduced constraint. Therefore, we can drop *Lower_secondary_completion_rate*. The model without this variable is as follows: -->
+We fail to reject the null hypothesis regarding the introduced constraint. Therefore, we can drop *Lower_secondary_completion_rate*. The model without this variable is as follows:
 
-<!-- <center> -->
-<!-- ```{r, echo=F, results = 'asis'} -->
-<!-- stargazer(model2.1, type = "html", single.row = T, report = "vcs*p") -->
-<!-- ``` -->
-<!-- </center> -->
-
-
-<!-- ### Step 2 -->
-
-<!-- **Deleting *Police* ** -->
-
-<!-- First, we generate the model without *Police* and without *Lower_secondary_completion_rate*. -->
-
-<!-- ```{r} -->
-<!-- model2.2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita + -->
-<!--                 School_enrollment + Unemployment_int + Unsentenced, -->
-<!--                 data = df3, -->
-<!--                 index=c("Country", "Year"), -->
-<!--                 model="within") -->
-<!-- ``` -->
-
-<!-- Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *Police* and *Lower_secondary_completion_rate* are both equal to zero. -->
-
-<!-- ```{r, echo=F} -->
-<!-- h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1)) -->
-
-<!-- wald.test(b = coef(fixed3), Sigma = vcov(fixed3), L = h) -->
-<!-- ``` -->
-
-<!-- We fail to reject the null hypothesis regarding the introduced constraints. Therefore, we can also drop *Police*. The model without these variables is as following: -->
-
-<!-- <center> -->
-<!-- ```{r, echo=F, results = 'asis'} -->
-<!-- stargazer(model2.2, type = "html", single.row = T, report = "vcs*p") -->
-<!-- ``` -->
-<!-- </center> -->
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(model3.1, type = "html", single.row = T, report = "vcs*p")
+```
+</center>
 
 
-<!-- ### Step 3 -->
+### Step 2
 
-<!-- **Deleting *Inequality* ** -->
+**Deleting *Police* **
 
-<!-- First, we generate the model without *Inequality*, *Police* and *Lower_secondary_completion_rate*. -->
+First, we generate the model without *Police* and without *Lower_secondary_completion_rate*.
 
-<!-- ```{r} -->
-<!-- model2.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita + -->
-<!--                 School_enrollment + Unemployment_int + Unsentenced, -->
-<!--                 data = df3, -->
-<!--                 index=c("Country", "Year"), -->
-<!--                 model="within") -->
-<!-- ``` -->
+```{r}
+model3.2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita + School_enrollment +
+                Unemployment_int + Unsentenced + Urbanization_rate + ln_RnD_expenditure,
+              data = df3,
+              index = c("Country", "Year"),
+              model = "within")
+```
 
-<!-- Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *Inequality*, *Police* and *Lower_secondary_completion_rate* are all equal to zero. -->
+Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *Police* and *Lower_secondary_completion_rate* are both equal to zero.
 
-<!-- ```{r, echo=F} -->
-<!-- h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1),c(1,0,0,0,0,0,0,0,0)) -->
+```{r, echo=F}
+h <- rbind(c(0,0,0,1,0,0,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1,0,0))
 
-<!-- wald.test(b = coef(fixed3), Sigma = vcov(fixed3), L = h) -->
-<!-- ``` -->
+wald.test(b = coef(fixed3), Sigma = vcov(fixed3), L = h)
+```
 
-<!-- We fail to reject the null hypothesis regarding the introduced constraints. Therefore, we can also drop *Inequality*, which contradicts literature. The model without these variables is as follows: -->
+We fail to reject the null hypothesis regarding the introduced constraints. Therefore, we can also drop *Police*. The model without these variables is as following:
 
-<!-- <center> -->
-<!-- ```{r, echo=F, results = 'asis'} -->
-<!-- stargazer(model2.3, type = "html", single.row = T, report = "vcs*p") -->
-<!-- ``` -->
-<!-- </center> -->
-
-<!-- ### Final model -->
-
-<!-- All the remaining variables are significant and jointly significant, so our final model is as follows: -->
-
-<!-- <center> -->
-<!-- ```{r, echo=F, results = 'asis'} -->
-<!-- stargazer(model2.3, type = "html", single.row = T, report = "vcs*") -->
-<!-- ``` -->
-<!-- </center> -->
-
-<!-- --- -->
-
-<!-- A trained eye may easily notice that despite the addition of two new years of observation (96 observations) to the dataset, the procedure of removing variables was exactly the same as for reproduction. -->
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(model3.2, type = "html", single.row = T, report = "vcs*p")
+```
+</center>
 
 
-<!-- ## Model diagnostic -->
+### Step 3
 
-<!-- Having dropped insignificant variables, we perform the model diagnostic of the final model using our own `model_diagnostic()` function. The results are as follows: -->
+**Deleting *Inequality* **
 
-<!-- ```{r, echo=F} -->
-<!-- model_diagnostic(model2.3) %>% -->
-<!--   kbl(booktabs = T, caption = "Replication 1st - model diagnostic") %>% -->
-<!--   kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14) -->
-<!-- ``` -->
+First, we generate the model without *Inequality*, *Police* and *Lower_secondary_completion_rate*.
 
-<!-- This means that residuals of our model are not normally distributed, and at the same time we have to deal with all the problems: cross-sectional dependence, serial correlation and heteroskedasticity - exactly the same as before. -->
+```{r}
+model3.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita + School_enrollment +
+                Unemployment_int + Unsentenced + Urbanization_rate + ln_RnD_expenditure,
+              data = df3,
+              index = c("Country", "Year"),
+              model = "within")
+```
 
-<!-- Also, as before, it turns out that we do not need to worry a lot about the result indicating that there is no normal distribution of residuals. Despite rejecting the null hypothesis in the Jarque-Bera test, the residuals are distributed close to normal distribution, which can be observed in the graph below. -->
+Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *Inequality*, *Police* and *Lower_secondary_completion_rate* are all equal to zero.
 
-<!-- ```{r, echo=F, fig.align='center', out.width = '80%'} -->
-<!-- hist(model2.3$residuals, -->
-<!--      density = 20, breaks = 20, prob = T, xlim = c(-1,1), -->
-<!--      xlab="Residuals", -->
-<!--      main="Replication 1st - histogram of the residuals") -->
-<!-- curve(dnorm(x, -->
-<!--             mean = mean(model2.3$residuals), -->
-<!--             sd = sqrt(var(model2.3$residuals))), -->
-<!--       col="steelblue", lwd = 2, add = T, yaxt = "n") -->
-<!-- ``` -->
+```{r, echo=F}
+h <- rbind(c(0,0,0,1,0,0,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1,0,0),c(1,0,0,0,0,0,0,0,0,0,0))
 
-<!-- In the case of cross-sectional dependence, serial correlation and heteroskedasticity, we again used the appropriate robust estimator using the same functions and parameters as before. All variables chosen in the final model remain significant after introducing the robust estimator. -->
+wald.test(b = coef(fixed3), Sigma = vcov(fixed3), L = h)
+```
 
-<!-- The exact results are shown in the final, comparative section. -->
+We fail to reject the null hypothesis regarding the introduced constraints. Therefore, we can also drop *Inequality*. The model without these variables is as follows:
+
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(model3.3, type = "html", single.row = T, report = "vcs*p")
+```
+</center>
 
 
+### Step 4
+
+**Deleting *ln_RnD_expenditure* **
+
+First, we generate the model without *ln_RnD_expenditure*, *Inequality*, *Police*, and *Lower_secondary_completion_rate*.
+
+```{r}
+model3.4 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita + School_enrollment +
+                Unemployment_int + Unsentenced + Urbanization_rate,
+              data = df3,
+              index = c("Country", "Year"),
+              model = "within")
+```
+
+Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *ln_RnD_expenditure*, *Inequality*, *Police*, and *Lower_secondary_completion_rate* are all equal to zero.
+
+```{r, echo=F}
+h <- rbind(c(0,0,0,1,0,0,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1,0,0),c(1,0,0,0,0,0,0,0,0,0,0),c(0,0,0,0,0,0,0,0,0,0,1))
+
+wald.test(b = coef(fixed3), Sigma = vcov(fixed3), L = h)
+```
+
+We fail to reject the null hypothesis regarding the introduced constraints. Therefore, we can also drop *ln_RnD_expenditure*. The model without these variables is as follows:
+
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(model3.4, type = "html", single.row = T, report = "vcs*p")
+```
+</center>
+
+Note that *Education_years* became more insignificant after deleting *ln_RnD_expenditure*.
+
+
+### Final model
+
+This time, one of the variables (*Education_years*) is not significant at the 5% significance level. However, for the reasons described in the next section, we decided not to drop it (as checked, its removal was not statistically unequivocal). Nevertheless, all variables are jointly significant. Our final model is therefore as follows:
+
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(model3.4, type = "html", single.row = T, report = "vcs*")
+```
+</center>
+
+---
+
+Note that this time by the procedure we removed exactly the same independent variables as in the case of reproduction and first replication. Additionally, one of the newly added to the analysis variables (*RnD_expenditure*) was dropped. 
+
+Interestingly, it was checked that *RnD_expenditure* remained insignificant not only when it was log-transformed, but also when it was a factor variable made based on the previously described division into intervals.
+
+
+## Model diagnostic
+
+We now perform the model diagnostic of the chosen final model using `model_diagnostic()` function. The results are as follows:
+
+```{r, echo=F}
+model_diagnostic(model3.4) %>%
+  kbl(booktabs = T, caption = "Replication 2nd - model diagnostic") %>%
+  kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
+```
+
+This means that we obtained once again the same conclusions: residuals are not normally distributed, and we encounter problems with cross-sectional dependence, serial correlation and heteroskedasticity.
+
+Residuals turned out, however, to be quite close to the normal distribution as can be observed below:
+
+```{r, echo=F, fig.align='center', out.width = '80%'}
+hist(model3.4$residuals,
+     density = 20, breaks = 20, prob = T, xlim = c(-1,1),
+     xlab="Residuals",
+     main="Replication 2nd - histogram of the residuals")
+curve(dnorm(x,
+            mean = mean(model3.4$residuals),
+            sd = sqrt(var(model3.4$residuals))),
+      col="steelblue", lwd = 2, add = T, yaxt = "n")
+```
+
+In the case of the other three model diagnostic problems, we used the mentioned earlier appropriate robust estimator that help us to deal with all of them. 
+
+<center>
+```{r, echo=F}
+model3.final <- coeftest(model3.4, vcovHC(model3.4, method = "arellano", type="HC0", cluster = "time"))
+
+stargazer(coeftest(model3.4), model3.final,
+          type = "text",
+          column.labels = c(" ","with robust estimator"),
+          title = "Replication 2nd model with and without robust estimator")
+
+```
+</center>
+
+All the factors are, obviously, the same in both cases. The difference is in the significance levels of the variables. After introducing the robust estimator, the significance of the variables improved, in particular the *Education_years* variable, about which we wrote earlier, turned out that should be treated as significant.
 
 
 <!-- <center> -->
