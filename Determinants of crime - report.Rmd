@@ -679,7 +679,7 @@ The obtained results are displayed in the next section. Worth to mention is that
 
 ## BA model
 
-Let us now estimate the model that has been recognized as final in the BA thesis to which we are referring. For this purpose, we will use exactly those independent variables that were present in that BA model.
+For the sake of comparison, we next estimated the model that has been recognized as the best in the BA thesis to which we are referring. For this purpose, we took exactly the same independent variables that were present and significant in that BA model. Next we estimated it as below.
 
 ```{r}
 model_BA <- plm(ln_Homicide ~ Inequality + ln_GDP_per_capita + School_enrollment + Police + Unsentenced,
@@ -694,14 +694,32 @@ stargazer(model_BA, type = "html", single.row = T, report = "vcs*p")
 ```
 </center>
 
+Note that slightly different variables were selected for the final model in the BA thesis. What is more, not all those variables were proven to be significant in the model constructed in this way.
+
+Similarly as earlier, we then check the diagnostic of this model using our `model_diagnostic()` function.
+
 ```{r, echo=F}
 model_diagnostic(model_BA) %>% 
   kbl(booktabs = T) %>%
   kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
 ```
 
-Not all variables are significant in the model constructed in this way.
+We encountered the same problems inside the diagnostic of BA model as earlier. Interestingly, the results of these tests, apart from the Jarque-Bere test result, coincide with the results of the BA thesis.
 
+The graph below indicates that again we should not worry about the Jarque-Bera test result. For the other three issues, we used the appropriate estimator as earlier.
+
+```{r, echo=F, fig.align='center', out.width = '80%'}
+hist(model_BA$residuals,
+     density = 20, breaks = 20, prob = T, xlim = c(-1,1), 
+     xlab="Residuals",
+     main="Bachelor model - histogram of the residuals")
+curve(dnorm(x,
+            mean = mean(model_BA$residuals),
+            sd = sqrt(var(model_BA$residuals))), 
+      col="steelblue", lwd = 2, add = T, yaxt = "n")
+```
+
+Finally, we could compare the results from the bachelor thesis with our reproduction model. Results presented below were obtained after introducing robust estimators to those models.
 
 <center>
 ```{r, echo=F, results = 'asis'}
@@ -715,5 +733,8 @@ stargazer(model_BA.final, model1.final,
 
 ```
 </center>
+
+As we can see, our reproduction model differs from the one from the bachelor thesis. First of all, we have different variables taken into account as significant one. Secondly, two variables in the BA model are not significant. On the other hand, we may observe some similarities in the parameters values and their signs (see *Unsentenced* or *School_enrollment* variables).
+
 
 ***
