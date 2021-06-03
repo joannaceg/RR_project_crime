@@ -1,11 +1,12 @@
 
 ### model_diagnostic() ###
 
-# The function that returns the table with the results of the tests that are crucial
+# The function that returns the table with the results of the statistical tests that are crucial
 # in the model diagnostic, including tests for: normality of residuals, cross-sectional dependence,
 # serial correlation and heteroskedasticity.
 
-# It takes 2 arguments: model object and significance level ('sig.level') with default value set to 5%.
+# It takes 2 arguments: model object of the `plm` class and significance level ('sig.level') 
+# with default value set to 5%.
 
 
 model_diagnostic <- function(model, sig.level = 0.05) {
