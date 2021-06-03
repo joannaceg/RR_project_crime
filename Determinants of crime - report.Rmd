@@ -1,33 +1,38 @@
 ---
 title: "Determinants of crime - report"
 author: "Joanna Ceglinska, Szymon Groszkiewicz"
-date: "26th of May, 2021"
+date: "May, 2021"
 output:
   html_document:
-    theme: yeti
-    in_header: header.html
-    include: null
-    self_contained: yes
-    smooth_scroll: yes
-    toc: no
-    toc_float: no
+    toc: true
+    toc_depth: 2
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+      scroll_highlight: true
+    number_sections: false
+    theme: united
+    highlight: zenburn
     
-      
 ---
+<!-- theme: united, darkly, cerulean, paper, simplex-->
 
+<!-- highlight: zenburn, breezedark, haddock  -->
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
-# install.packages("pandoc")
-library(knitr)
-library(dplyr)
-library(data.table)
-library(kableExtra)
+
+library(aod)
 library(bestNormalize)
+library(data.table)
+library(dplyr)
+library(kableExtra)
+library(knitr)
+library(lmtest)
 library(GGally)
 library(ggplot2)
 library(gplots)
-library(lmtest)
 library(plm)
+library(stargazer)
 ```
 
 ```{r, echo=F}
@@ -40,19 +45,7 @@ colnames(data) <- c("Country", "Year", "Homicide", "Inequality", "Education_year
                     "Lower_secondary_completion_rate", "RnD_expenditure", "School_enrollment", 
                     "Unemployment", "Urbanization_rate","Unsentenced", "Police")
 
-df <- data %>%
-  select(Country, Year, Homicide, Inequality, Education_years, 
-         GDP_per_capita, Lower_secondary_completion_rate, 
-         School_enrollment, Unemployment, Unsentenced, Police) %>%
-  filter(Year %in% 2003:2015)
-
 # Data transformation
-df$ln_Homicide <- log(df$Homicide)
-df$ln_GDP_per_capita <- log(df$GDP_per_capita)
-df$Unemployment_int <- cut(df$Unemployment,
-                           breaks = c(0,5.5,8.5,Inf),
-                           labels = c("_low", "_medium","_high"))
-
 df2 <- data %>%
   select(Country, Year, Homicide, Inequality, Education_years, 
          GDP_per_capita, Lower_secondary_completion_rate, 
@@ -78,7 +71,7 @@ df3$Unemployment_int <- cut(df3$Unemployment,
 df3$ln_RnD_expenditure <- log(df3$RnD_expenditure)
 ```
 
-## Introduction
+# Introduction
 
 The aim of this project is to reproduce the results of a bachelor thesis study prepared in 2019 by Joanna Ceglinska (one of the authors) and extend the research by using different software, bigger dataset and by implementing more advanced methods of data analysis and visualization. 
 The topic of the original study was investigating the determinants of crime using panel data of 48 countries for the years 2003-2015. The dependent variable was the homicide rate and independent variables included the Gini index, GDP per capita, unemployment rate, variables responsible for measuring the education level in a country and a regressor which presents the effectiveness of judicial system (Unsentenced detainees as a proportion of overall prison population).
@@ -106,7 +99,7 @@ This variable was chosen because is a serious violent crime, that causes a signi
 The distribution of this variable is presented in the plot below. The distribution is highly asymmetrical and skewed towards the left side of the plot - the majority of observations are concentrated around zero. Therefore, we have decided to use a logarithmic transformation of homicide rate in the research. 
 
 
-```{r, echo=F, fig.align='center'}
+```{r, echo=F, fig.align='center', out.width = '80%'}
 ggplot(data) +
   geom_histogram(aes(Homicide), fill = "Steelblue", color = "black")
 ```
@@ -114,7 +107,7 @@ ggplot(data) +
 The next plot presents how the heterogeneity of the homicide rate has been changing in the presented years 2003-2017. It can be observed, that the heterogeneity decreases with time (from 8.5 to around 6), which means that countries tend to differ less in the homicide rate across the world.
 
 
-```{r , echo=FALSE, out.width = '80%', fig.align='center'}
+```{r , echo=F, fig.align='center', out.width = '120%'}
 plotmeans(Homicide ~ Year, main="Heterogeineity across years", data=data)
 ```
 
@@ -208,10 +201,443 @@ df_differences %>%
 
 ### Research hypotheses
 
+The literature review prompts us to formulate hypotheses as to the influence of selected variables on the dependent variable, which will be verified in an empirical study. The hypotheses posed in the bachelor's thesis on which we base the project are as follows:
+
+* Income inequality has a negative effect on the homicide rate.
+* GDP per capita has a negative effect on the homicide rate.
+* The level of education in a country influences crime (the higher the level, the lower the crime).
+* The ease of detecting a crime acts as a deterrent to the decision to commit a crime.
+* Poor labor market conditions in the country have a positive effect on the homicide rate.
+* The effectiveness of the justice system has a positive effect on the homicide rate.
 
 
+# Reproduction
+
+Info about this part, what we are doing, what assumptions etc.
+
+## Data transormation
+
+Choosing vars, without RnD_expenditure and Urbanization_rate, filtering appropriate years
+
+```{r}
+df <- data %>%
+  select(Country, Year, Homicide, Inequality, Education_years, GDP_per_capita,
+         Lower_secondary_completion_rate, School_enrollment, Unemployment, Unsentenced, Police) %>%
+  filter(Year %in% 2003:2015)
+```
+
+### Homicide
+
+Since there is `r sum(df$Homicide <= 0)` observations for which *Homicide* is non-positive, we do not need to add any number to it inside the logarithm.
+
+### {.tabset .tabset-fade .tabset-pills}
+
+#### Basic form
+
+```{r, echo=F, fig.align='center', out.width = '80%'}
+ggplot(df) +
+  geom_histogram(aes(Homicide), fill = "Steelblue", color = "black")
+```
+
+#### Log-transformed
+
+```{r, echo=F, fig.align='center', out.width = '80%'}
+ggplot(df) +
+  geom_histogram(aes(log(Homicide)), fill = "Steelblue", color = "black")
+```
+
+### {-}
+
+In Box-Cox we obtain that $\lambda$ = `r bestNormalize::boxcox(df$Homicide)$lambda %>% round(4)` 
+
+```{r}
+# Box-Cox rather indicates log-transformation
+bestNormalize::boxcox(df$Homicide)$lambda
+```
+
+Therefore, we create the logarithm of the dependent variable
+
+```{r}
+df$ln_Homicide <- log(df$Homicide)
+```
+
+We can apply Box-Cox transformation also for some other variables and check whether any transformation should be considered.
 
 
+### GDP per capita
+
+### {.tabset .tabset-fade .tabset-pills}
+
+#### Basic form
+
+```{r, echo=F, fig.align='center', out.width = '80%'}
+ggplot(df) +
+  geom_histogram(aes(GDP_per_capita), fill = "Steelblue", color = "black")
+```
+
+#### Log-transformed
+
+```{r, echo=F, fig.align='center', out.width = '80%'}
+ggplot(df) +
+  geom_histogram(aes(log(GDP_per_capita)), fill = "Steelblue", color = "black")
+```
+
+### {-}
+
+```{r}
+bestNormalize::boxcox(df$GDP_per_capita)$lambda
+```
+
+We log-transform it
+
+```{r}
+df$ln_GDP_per_capita <- log(df$GDP_per_capita)
+```
+
+### Unemployment
+
+We transform it exactly in the same way it was done in the Bachelor thesis. Later in replication we will consider also other transformation of this variable.
+
+```{r}
+df$Unemployment_int <- cut(df$Unemployment,
+                           breaks = c(0,5.5,8.5,Inf),
+                           labels = c("_low", "_medium","_high"))
+```
+
+## Panel data models
+
+```{r}
+# fixed effects model
+fixed <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+             Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
+             data = df, 
+             index=c("Country", "Year"),
+             model="within")
+```
+
+```{r}
+# random effects model
+random <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+               Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
+             data = df, 
+             index=c("Country", "Year"),
+             model="random")
+```
+
+```{r}
+# POLS
+pols <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+              Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
+            data = df,
+            index=c("Country", "Year"),
+            model="pooling")
+```
+
+## Model selecion
+
+Here also about model_select() function
+
+```{r}
+source("functions/model_select.R")
+```
+
+<details><summary>Show the definition of the function</summary>
+
+```{r}
+model_select <- function(fixed, random, pols, sig.level = 0.05) {
+  
+  library(dplyr)
+  library(plm)
+  
+  
+  # Breusch-Pagan Lagrange Multiplier test for random effects
+  random_effects <- plmtest(pols, type=c("bp"))
+  
+  random_effects_con <- ifelse(random_effects$p.value < sig.level,
+                               "significant random effects",
+                               "insignificant random effects")
+  
+  # F test for individual fixed effects
+  fixed_effects <- pFtest(fixed, pols)
+  
+  fixed_effects_con <- ifelse(fixed_effects$p.value < sig.level,
+                              "significant fixed effects",
+                              "insignificant fixed effects")
+  
+  # Breusch-Pagan Lagrange Multiplier test for time-fixed effects
+  time_fixed_effects <- plmtest(fixed, c("time"), type=("bp"))
+  
+  time_fixed_effects_con <- ifelse(time_fixed_effects$p.value < sig.level,
+                                   "time-fixed effects needed",
+                                   "no time-fixed effects needed")
+  
+  # Hausmann test
+  hausmann <- phtest(fixed, random)
+  
+  hausmann_con <- ifelse(hausmann$p.value < sig.level,
+                         "choose fixed effects model",
+                         "choose random effects model")
+  
+  
+  # Data frame result
+  result <- data.frame(
+    test = c("Breusch-Pagan LM test for random effects",
+             "F test for individual fixed effects",
+             "Breusch-Pagan LM test for time-fixed effects",
+             "Hausmann test"
+             ),
+    p.value = c(random_effects$p.value, fixed_effects$p.value, 
+              time_fixed_effects$p.value, hausmann$p.value) %>% 
+      round(4),
+    conclusion = c(random_effects_con, fixed_effects_con,
+                 time_fixed_effects_con, hausmann_con) ,
+    row.names = NULL
+    )
+  
+  result$p.value <- ifelse(result$p.value == 0, "< 0.0001" , result$p.value)
+  
+  
+  return(result)
+
+}
+```
+</details>
+<br/>
+
+```{r, echo=F}
+model_select(fixed, random, pols) %>% 
+  kbl(booktabs = T) %>%
+  kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
+```
+
+## General-to-specific modeling {.tabset .tabset-fade .tabset-pills}
+
+some info about it
+
+### Base model
+
+Let us take a look at the base model, which we called `fixed`.
+
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(fixed, type = "html", single.row = T, report = "vcs*")
+```
+</center>
+
+### Step 1
+
+**Deleting *Lower_secondary_completion_rate* **
+
+First, we generate the model without *Lower_secondary_completion_rate*.
+
+```{r}
+model1.1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                School_enrollment + Unemployment_int + Unsentenced + Police,
+                data = df,
+                index=c("Country", "Year"),
+                model="within")
+```
+
+Next, we check the significance of omitting this variable using Wald test. Namely, we test whether the coefficient of the *Lower_secondary_completion_rate* variable is equal to zero.
+
+```{r, echo=F}
+h <- rbind(c(0,0,0,1,0,0,0,0,0))
+
+wald.test(b = coef(fixed), Sigma = vcov(fixed), L = h)
+```
+
+We fail to reject the null hypothesis regarding the introduced constraint. Therefore, we can omit *Lower_secondary_completion_rate*. The model without this variable is as follows:
+
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(model1.1, type = "html", single.row = T, report = "vcs*p")
+```
+</center>
 
 
+### Step 2
 
+**Deleting *Police* **
+
+First, we generate the model without *Police* and without *Lower_secondary_completion_rate*.
+
+```{r}
+model1.2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                School_enrollment + Unemployment_int + Unsentenced,
+                data = df,
+                index=c("Country", "Year"),
+                model="within")
+```
+
+Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *Police* and *Lower_secondary_completion_rate* are both equal to zero.
+
+```{r, echo=F}
+h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1)) 
+
+wald.test(b = coef(fixed), Sigma = vcov(fixed), L = h)
+```
+
+We fail to reject the null hypothesis regarding the introduced constraints. Therefore, we can also omit *Police*. The model without these variables is as following:
+
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(model1.2, type = "html", single.row = T, report = "vcs*p")
+```
+</center>
+
+
+### Step 3
+
+**Deleting *Inequality* **
+
+First, we generate the model without *Inequality*, *Police* and *Lower_secondary_completion_rate*.
+
+```{r}
+model1.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
+                School_enrollment + Unemployment_int + Unsentenced,
+                data = df,
+                index=c("Country", "Year"),
+                model="within")
+```
+
+Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *Inequality*, *Police* and *Lower_secondary_completion_rate* are all equal to zero.
+
+```{r, echo=F}
+h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1),c(1,0,0,0,0,0,0,0,0))
+
+wald.test(b = coef(fixed), Sigma = vcov(fixed), L = h)
+```
+
+We fail to reject the null hypothesis regarding the introduced constraints. Therefore, we can also omit *Inequality*, which contradicts literature. The model without these variables is as follows:
+
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(model1.3, type = "html", single.row = T, report = "vcs*p")
+```
+</center>
+
+### Final model
+
+All the remaining variables are significant and jointly significant, so our final model is as follows:
+
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(model1.3, type = "html", single.row = T, report = "vcs*")
+```
+</center>
+
+---
+
+## Model diagnostic
+
+What is going on and why important.. what is this function
+
+```{r}
+source("functions/model_diagnostic.R")
+```
+
+<details><summary>Show the definition of the function</summary>
+
+```{r}
+model_diagnostic <- function(model, sig.level = 0.05) {
+  
+  library(dplyr)
+  library(lmtest)
+  library(plm)
+  library(tseries)
+  
+  
+  # Jarque-Bera LM test for normality of residuals
+  jarque_bera <- jarque.bera.test(model$residuals)
+  
+  jarque_bera_con <- ifelse(jarque_bera$p.value < sig.level,
+                            "not normally distributed residuals", "normally distributed residuals")
+  
+  # Breusch-Pagan LM test for cross-sectional dependence
+  cross_sectional_BP <- pcdtest(model, test = c("lm"))
+  
+  cross_sectional_BP_con <- ifelse(cross_sectional_BP$p.value < sig.level,
+                                   "cross-sectional dependence", "no cross-sectional dependence")
+  
+  # Pesaran CD test for cross-sectional dependence
+  cross_sectional_P <- pcdtest(model, test = c("cd"))
+  
+  cross_sectional_P_con <- ifelse(cross_sectional_P$p.value < sig.level,
+                                  "cross-sectional dependence", "no cross-sectional dependence")
+  
+  # Breusch-Godfrey/Wooldridge test for serial correlation
+  serial_correlation <- pbgtest(model)
+  
+  serial_correlation_con <- ifelse(serial_correlation$p.value < sig.level,
+                                   "serial correlation", "no serial correlation")
+  
+  # Breusch-Pagan test for heteroskedasticity
+  heteroskedasticity <- bptest(model$formula,
+                               data = model$model,
+                               studentize=F)
+  
+  heteroskedasticity_con <- ifelse(heteroskedasticity$p.value < sig.level,
+                                   "heteroskedasticity", "homoskedasticity")
+  
+  
+  # Data frame result
+  result <- data.frame(
+    test = c("Jarque-Bera LM test for normality of residuals",
+             "Breusch-Pagan LM test for cross-sectional dependence",
+             "Pesaran CD test for cross-sectional dependence",
+             "Breusch-Godfrey/Wooldridge test for serial correlation",
+             "Breusch-Pagan test for heteroskedasticity"
+    ),
+    p.value = c(jarque_bera$p.value, cross_sectional_BP$p.value, cross_sectional_P$p.value, 
+                serial_correlation$p.value, heteroskedasticity$p.value) %>% 
+      round(4),
+    conclusion = c(jarque_bera_con, cross_sectional_BP_con, cross_sectional_P_con,
+                   serial_correlation_con, heteroskedasticity_con),
+    row.names = NULL
+  )
+  
+  result$p.value <- ifelse(result$p.value == 0, "< 0.0001" , result$p.value)
+  
+  
+  return(result)
+  
+}
+```
+</details>
+<br/>
+
+```{r, echo=F}
+model_diagnostic(model1.3) %>% 
+  kbl(booktabs = T) %>%
+  kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
+```
+
+---
+
+## BA model
+
+Let us now estimate the model that has been recognized as final in the BA thesis to which we are referring. For this purpose, we will use exactly those independent variables that were present in that BA model.
+
+```{r}
+model_BA <- plm(ln_Homicide ~ Inequality + ln_GDP_per_capita + School_enrollment + Police + Unsentenced,
+                data = df, 
+                index=c("Country", "Year"),
+                model="within")
+```
+
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(model_BA, type = "html", single.row = T, report = "vcs*p")
+```
+</center>
+
+```{r, echo=F}
+model_diagnostic(model_BA) %>% 
+  kbl(booktabs = T) %>%
+  kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
+```
+
+Not all variables are significant in the model constructed in this way.
+
+
+***
