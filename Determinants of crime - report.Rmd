@@ -19,7 +19,7 @@ output:
 
 <!-- highlight: zenburn, breezedark, haddock  -->
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F, cache = T)
 
 library(aod)
 library(bestNormalize)
@@ -33,6 +33,7 @@ library(ggplot2)
 library(gplots)
 library(plm)
 library(stargazer)
+library(tseries)
 ```
 
 ```{r, echo=F}
@@ -194,7 +195,7 @@ df_differences %>%
 
 ```
 
-### Filling the missing observations
+### Filling the missing values
 
 
 
@@ -215,9 +216,25 @@ The literature review prompts us to formulate hypotheses as to the influence of 
 
 Info about this part, what we are doing, what assumptions etc.
 
+Let us now move to the reproduction modeling part of our project. Based on the same data as in the bachelor's thesis (the one before dealing with the missing values), we check whether we get the same results. For this, However, this time we use for this analysis different software, and therefore slightly different functions. In addition, as already mentioned before, we use a more accurate method of filling in the missing data.
+
+We first decided to briefly present how in general we deal with choosing the appropriate type of model in the case of panel data.
+
+#### The general schema of the type of model selection in the panel data
+
+```{r , echo=FALSE, out.width = '45%', fig.align='center'}
+knitr::include_graphics("pictures/model_selection_schema.png")
+```
+
+SOURCE ???
+
+At the beginning, we check whether the random and fixed effects are significant based on Breusch-Pagan Lagrange Multiplier Test. If they both are not, we simply use Pooled Ordinary Least Squares (POLS) model. However, if those effects are significant, we then check using Huasmann test which model it is better to use: fixed effects model or random effects model.
+
+In our analysis we also decided to check additionally whether time effects are needed in the model (again using the appropriate Breusch-Pagan Lagrange Multiplier Test). Also in general, the significance level, naturally can be chosen different than 5% as on the graph. Setting this level will be possible, among others, in the functions that are an automated part of our analysis.
+
 ## Data transormation
 
-Choosing vars, without RnD_expenditure and Urbanization_rate, filtering appropriate years
+Having filled in the missing values in the data, for reproduction purposes, we limit the data to the variables that were considered in the bachelor's thesis (i.e. without *RnD_expenditure* and *Urbanization_rate*) for the years up to 2015.
 
 ```{r}
 df <- data %>%
@@ -226,9 +243,11 @@ df <- data %>%
   filter(Year %in% 2003:2015)
 ```
 
+Let us perform some data transformation now.
+
 ### Homicide
 
-Since there is `r sum(df$Homicide <= 0)` observations for which *Homicide* is non-positive, we do not need to add any number to it inside the logarithm.
+As already shown before, *Homecide* variable seems to be right-skewed. Therefore we should consider its log-transformation. Since there is  `r sum(df$Homicide <= 0)` observations for which *Homicide* is non-positive, we do not need to add any number to it inside the logarithm function.
 
 ### {.tabset .tabset-fade .tabset-pills}
 
@@ -248,23 +267,19 @@ ggplot(df) +
 
 ### {-}
 
-In Box-Cox we obtain that $\lambda$ = `r bestNormalize::boxcox(df$Homicide)$lambda %>% round(4)` 
+Having applied Box-Cox transformation for this variable, we got the result that the optimal $\lambda$ = `r bestNormalize::boxcox(df$Homicide)$lambda %>% round(4)` 
 
-```{r}
-# Box-Cox rather indicates log-transformation
-bestNormalize::boxcox(df$Homicide)$lambda
-```
+It is not that much close to zero, but since after this transformation the distribution is more symmetric and and since it was performed in the original analysis, we decided to log-transform it.
 
-Therefore, we create the logarithm of the dependent variable
+Therefore, we create the logarithm of the dependent variable:
 
 ```{r}
 df$ln_Homicide <- log(df$Homicide)
 ```
 
-We can apply Box-Cox transformation also for some other variables and check whether any transformation should be considered.
-
-
 ### GDP per capita
+
+Now we can consider *GDP_per_capita* variable, which based on the pltos below, seems to have much right-skewed distribution.
 
 ### {.tabset .tabset-fade .tabset-pills}
 
@@ -284,11 +299,7 @@ ggplot(df) +
 
 ### {-}
 
-```{r}
-bestNormalize::boxcox(df$GDP_per_capita)$lambda
-```
-
-We log-transform it
+Box-Cox transformation for this variable indicates that the optimal $\lambda$ = `r bestNormalize::boxcox(df$Homicide)$lambda %>% round(4)`, which confirms that it is better to use the logarithm of this variable in the model. The same transformation was made in the original analysis.
 
 ```{r}
 df$ln_GDP_per_capita <- log(df$GDP_per_capita)
@@ -296,7 +307,7 @@ df$ln_GDP_per_capita <- log(df$GDP_per_capita)
 
 ### Unemployment
 
-We transform it exactly in the same way it was done in the Bachelor thesis. Later in replication we will consider also other transformation of this variable.
+In the case of *Unemployment* variable, we decided to transform it exactly in the same way it was done in the bachelor thesis, i.e. to divide its values into 3 groups referred to `low`, `medium` and `high` rate of unemployment.
 
 ```{r}
 df$Unemployment_int <- cut(df$Unemployment,
@@ -306,13 +317,17 @@ df$Unemployment_int <- cut(df$Unemployment,
 
 ## Panel data models
 
+In this part we finally estimate three kinds of model for the panel data, that is fixed effects model, random effects model and POLS model. To do this, we use `plm()` function from the package of the same name. 
+
+In order to obtain the appropriate models, we need to choose the corresponding value of the `model` argument as follows:
+
 ```{r}
 # fixed effects model
 fixed <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
              Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
              data = df, 
-             index=c("Country", "Year"),
-             model="within")
+             index = c("Country", "Year"),
+             model = "within")
 ```
 
 ```{r}
@@ -320,8 +335,8 @@ fixed <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
 random <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
                Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
              data = df, 
-             index=c("Country", "Year"),
-             model="random")
+             index = c("Country", "Year"),
+             model = "random")
 ```
 
 ```{r}
@@ -329,8 +344,8 @@ random <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
 pols <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
               Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
             data = df,
-            index=c("Country", "Year"),
-            model="pooling")
+            index = c("Country", "Year"),
+            model = "pooling")
 ```
 
 ## Model selecion
@@ -612,6 +627,26 @@ model_diagnostic(model1.3) %>%
   kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
 ```
 
+```{r, echo=F, fig.align='center', out.width = '80%'}
+hist(model1.3$residuals,
+     density = 20, breaks = 20, prob = T, xlim = c(-1,1), 
+     xlab="Residuals",
+     main="Reproduction model - histogram of the residuals")
+curve(dnorm(x,
+            mean = mean(model1.3$residuals),
+            sd = sqrt(var(model1.3$residuals))), 
+      col="steelblue", lwd = 2, add = T, yaxt = "n")
+```
+
+### Robust estimator
+
+Info about it, why this and why it is good
+
+```{r, eval=F}
+coeftest(model1.3,
+         vcovHC(model1.3, method = "arellano", type="HC0", cluster = "time"))
+```
+
 ---
 
 ## BA model
@@ -639,5 +674,18 @@ model_diagnostic(model_BA) %>%
 
 Not all variables are significant in the model constructed in this way.
 
+
+<center>
+```{r, echo=F, results = 'asis'}
+model1.final <- coeftest(model1.3, vcovHC(model1.3, method = "arellano", type="HC0", cluster = "time"))
+
+model_BA.final <- coeftest(model_BA, vcovHC(model_BA, method = "arellano", type="HC0", cluster = "time"))
+
+stargazer(model_BA.final, model1.final,
+          type = "html", column.labels = c("Bachelor","Reproduction"),
+          title = "BA model vs. reproduction model", column.sep.width = "10px")
+
+```
+</center>
 
 ***
