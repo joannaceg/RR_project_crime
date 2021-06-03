@@ -222,7 +222,7 @@ We first decided to briefly present how in general we deal with choosing the app
 
 #### The general schema of the type of model selection in the panel data
 
-```{r , echo=FALSE, out.width = '45%', fig.align='center'}
+```{r , echo=FALSE, out.width = '55%', fig.align='center'}
 knitr::include_graphics("pictures/model_selection_schema.png")
 ```
 
@@ -299,7 +299,7 @@ ggplot(df) +
 
 ### {-}
 
-Box-Cox transformation for this variable indicates that the optimal $\lambda$ = `r bestNormalize::boxcox(df$Homicide)$lambda %>% round(4)`, which confirms that it is better to use the logarithm of this variable in the model. The same transformation was made in the original analysis.
+Box-Cox transformation for this variable indicates that the optimal $\lambda$ = `r bestNormalize::boxcox(df$GDP_per_capita)$lambda %>% round(4)`, which confirms that it is better to use the logarithm of this variable in the model. The same transformation was made in the original analysis.
 
 ```{r}
 df$ln_GDP_per_capita <- log(df$GDP_per_capita)
@@ -350,13 +350,15 @@ pols <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
 
 ## Model selecion
 
-Here also about model_select() function
+In order to make a faster, almost automatic decision on which type of model should be used, we have created a `model_select()` function. It returns the table with the results of the statistical tests that are necessary in the model choice. Those test were already mentioned, but they are also mentioned in the definition of this function, which can be viewed below.
+
+This function takes 4 arguments: fixed effects model object, random effects model object, POLS model object, and significance level (`sig.level`) with default value set to 5%.
 
 ```{r}
 source("functions/model_select.R")
 ```
 
-<details><summary>Show the definition of the function</summary>
+<details><summary>Show the definition of the function <font color="red">(Click to show)</font></summary>
 
 ```{r}
 model_select <- function(fixed, random, pols, sig.level = 0.05) {
@@ -419,15 +421,21 @@ model_select <- function(fixed, random, pols, sig.level = 0.05) {
 </details>
 <br/>
 
+By applying the created function to 3 defined earlier models, we get the following table as a result.
+
 ```{r, echo=F}
 model_select(fixed, random, pols) %>% 
   kbl(booktabs = T) %>%
   kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
 ```
 
-## General-to-specific modeling {.tabset .tabset-fade .tabset-pills}
+In this case, based on internally performed statistical tests, we can conclude that effects are significant in both random and fixed effects models. In addtion, there is no need for time effects. Therefore, we check the Hausmann test, which indicates that it is better to use fixed effects model in this case.
 
-some info about it
+## General-to-specific procedure {.tabset .tabset-fade .tabset-pills}
+
+Due to the results obtained above, we are focusing on the fixed effects model. Since it contains insignificant variables, we perform a *from-general-to-specific* procedure to get rid of them from the model.
+
+Although we could have automated this part as well, we found it an inappropriate approach as deleting sequentially variables is rather case-specific and one should have a broader perspective than just automated approach concentrated mainly on *p-values*. Therefore, we present below the steps of eliminating insignificant variables.
 
 ### Base model
 
@@ -461,7 +469,7 @@ h <- rbind(c(0,0,0,1,0,0,0,0,0))
 wald.test(b = coef(fixed), Sigma = vcov(fixed), L = h)
 ```
 
-We fail to reject the null hypothesis regarding the introduced constraint. Therefore, we can omit *Lower_secondary_completion_rate*. The model without this variable is as follows:
+We fail to reject the null hypothesis regarding the introduced constraint. Therefore, we can drop *Lower_secondary_completion_rate*. The model without this variable is as follows:
 
 <center>
 ```{r, echo=F, results = 'asis'}
@@ -492,7 +500,7 @@ h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1))
 wald.test(b = coef(fixed), Sigma = vcov(fixed), L = h)
 ```
 
-We fail to reject the null hypothesis regarding the introduced constraints. Therefore, we can also omit *Police*. The model without these variables is as following:
+We fail to reject the null hypothesis regarding the introduced constraints. Therefore, we can also drop *Police*. The model without these variables is as following:
 
 <center>
 ```{r, echo=F, results = 'asis'}
@@ -523,7 +531,7 @@ h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1),c(1,0,0,0,0,0,0,0,0))
 wald.test(b = coef(fixed), Sigma = vcov(fixed), L = h)
 ```
 
-We fail to reject the null hypothesis regarding the introduced constraints. Therefore, we can also omit *Inequality*, which contradicts literature. The model without these variables is as follows:
+We fail to reject the null hypothesis regarding the introduced constraints. Therefore, we can also drop *Inequality*, which contradicts literature. The model without these variables is as follows:
 
 <center>
 ```{r, echo=F, results = 'asis'}
@@ -545,13 +553,15 @@ stargazer(model1.3, type = "html", single.row = T, report = "vcs*")
 
 ## Model diagnostic
 
-What is going on and why important.. what is this function
+Dropping insignificant variable does not end the modeling. Now we need to move on to the model diagnostic. For this, we again used some automatization approach based on our own function - `model_diagnostic()`. It returns the table with the results and conclusions of the statistical tests that are crucial in the model diagnostic, including tests for: normality of residuals, cross-sectional dependence, serial correlation and heteroskedasticity. Details one can see in the function definition below.
+
+`model_diagnostic()` function takes 2 arguments: model object of the `plm` class and significance level (`sig.level`) with default value set to 5%.
 
 ```{r}
 source("functions/model_diagnostic.R")
 ```
 
-<details><summary>Show the definition of the function</summary>
+<details><summary>Show the definition of the function <font color="red">(Click to show)</font></summary>
 
 ```{r}
 model_diagnostic <- function(model, sig.level = 0.05) {
@@ -621,11 +631,17 @@ model_diagnostic <- function(model, sig.level = 0.05) {
 </details>
 <br/>
 
+For our final fixed effects model we have the following results:
+
 ```{r, echo=F}
 model_diagnostic(model1.3) %>% 
   kbl(booktabs = T) %>%
   kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
 ```
+
+This means that residuals of our model are not normally distributed, and at the same time we have to deal with all the problems: cross-sectional dependence, serial correlation and heteroskedasticity.
+
+Let us start with the issue of the residuals distribution. We plot it below, together with the normal distribution with the parameters based on residuals values.
 
 ```{r, echo=F, fig.align='center', out.width = '80%'}
 hist(model1.3$residuals,
@@ -638,14 +654,26 @@ curve(dnorm(x,
       col="steelblue", lwd = 2, add = T, yaxt = "n")
 ```
 
+The graph shows that the distribution of residuals is rather close to the normal distribution. So where does this discrepancy come from?
+
+Note that the Jarque-Bera test often rejects the null hypothesis for large samples (like here) where it detects even a small deviation in the residuals distribution from the normal distribution. Moreover, the lack of normality in the distribution of residuals is not very significant for large samples.
+
+What about the other three problems? We need to use the appropriate robust estimator.
+
 ### Robust estimator
 
-Info about it, why this and why it is good
+The robust estimator we are using below (`vcovHC()` function with the `method` argument set to `arellano`) is appropriate for both heteroskedasticity and serial correlation problems. Additionally, it is also highly recommended in the case of the fixed effects models.
+
+How about the cross-sectional dependence?
+
+In general, since we have less than 20 years of observations it is sometimes said that there is no need to deal with the cross-sectional dependence. Nevertheless, we decided to include also this issue in our robust estimator. Namely, by setting `cluster = "time"` inside `vcovHC()` function, observations are clustered by "time" to account for the cross-sectional correlation.
 
 ```{r, eval=F}
 coeftest(model1.3,
          vcovHC(model1.3, method = "arellano", type="HC0", cluster = "time"))
 ```
+
+The obtained results are displayed in the next section. Worth to mention is that those results obviously do not differ among the values of estimators, but only among their significance level. In our case all of the chosen variable were still significant. 
 
 ---
 
