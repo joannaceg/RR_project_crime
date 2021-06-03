@@ -214,8 +214,6 @@ The literature review prompts us to formulate hypotheses as to the influence of 
 
 # Reproduction
 
-Info about this part, what we are doing, what assumptions etc.
-
 Let us now move to the reproduction modeling part of our project. Based on the same data as in the bachelor's thesis (the one before dealing with the missing values), we check whether we get the same results. For this, However, this time we use for this analysis different software, and therefore slightly different functions. In addition, as already mentioned before, we use a more accurate method of filling in the missing data.
 
 We first decided to briefly present how in general we deal with choosing the appropriate type of model in the case of panel data.
@@ -267,7 +265,7 @@ ggplot(df) +
 
 ### {-}
 
-Having applied Box-Cox transformation for this variable, we got the result that the optimal $\lambda$ = `r bestNormalize::boxcox(df$Homicide)$lambda %>% round(4)` 
+Having applied Box-Cox transformation for this variable, we got the result that the optimal $\lambda$ = `r bestNormalize::boxcox(df$Homicide)$lambda %>% round(4)`.
 
 It is not that much close to zero, but since after this transformation the distribution is more symmetric and and since it was performed in the original analysis, we decided to log-transform it.
 
@@ -279,7 +277,7 @@ df$ln_Homicide <- log(df$Homicide)
 
 ### GDP per capita
 
-Now we can consider *GDP_per_capita* variable, which based on the pltos below, seems to have much right-skewed distribution.
+Now we can consider *GDP_per_capita* variable, which based on the plots below, seems to have much right-skewed distribution.
 
 ### {.tabset .tabset-fade .tabset-pills}
 
@@ -425,11 +423,11 @@ By applying the created function to 3 defined earlier models, we get the followi
 
 ```{r, echo=F}
 model_select(fixed, random, pols) %>% 
-  kbl(booktabs = T) %>%
+  kbl(booktabs = T, caption = "Reproduction - model select") %>%
   kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
 ```
 
-In this case, based on internally performed statistical tests, we can conclude that effects are significant in both random and fixed effects models. In addtion, there is no need for time effects. Therefore, we check the Hausmann test, which indicates that it is better to use fixed effects model in this case.
+In this case, based on internally performed statistical tests, we can conclude that effects are significant in both random and fixed effects models. In addition, there is no need for time effects. Therefore, we check the Hausmann test, which indicates that it is better to use fixed effects model in this case.
 
 ## General-to-specific procedure {.tabset .tabset-fade .tabset-pills}
 
@@ -635,8 +633,8 @@ For our final fixed effects model we have the following results:
 
 ```{r, echo=F}
 model_diagnostic(model1.3) %>% 
-  kbl(booktabs = T) %>%
-  kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
+  kbl(booktabs = T, caption = "Reproduction - model diagnostic") %>%
+  kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14, )
 ```
 
 This means that residuals of our model are not normally distributed, and at the same time we have to deal with all the problems: cross-sectional dependence, serial correlation and heteroskedasticity.
@@ -700,7 +698,7 @@ Similarly as earlier, we then check the diagnostic of this model using our `mode
 
 ```{r, echo=F}
 model_diagnostic(model_BA) %>% 
-  kbl(booktabs = T) %>%
+  kbl(booktabs = T, caption = "Bachelor - model diagnostic") %>%
   kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
 ```
 
@@ -735,6 +733,136 @@ stargazer(model_BA.final, model1.final,
 </center>
 
 As we can see, our reproduction model differs from the one from the bachelor thesis. First of all, we have different variables taken into account as significant one. Secondly, two variables in the BA model are not significant. On the other hand, we may observe some similarities in the parameters values and their signs (see *Unsentenced* or *School_enrollment* variables).
+
+# Replication 1st 
+
+In this part we perform the first of two replication analysis of our project. The assumptions about the software used and the way of filling in the missing values remain the same as in the case of reproduction part. This time, however, we estimate the model, but including next 2 years of observations for each country, which gives us jointly 96 new observations added to the dataset. 
+
+The main goal of this replication is naturally to check the robustness of the results when considering the extended database.
+
+## Data transormation
+
+In the first replication part, as described above we limit the data to the variables that were considered in the bachelor's thesis (i.e. without *RnD_expenditure* and *Urbanization_rate*), but this time for all the years in the database (including 2016 and 2017).
+
+```{r}
+df2 <- data %>%
+  select(Country, Year, Homicide, Inequality, Education_years, GDP_per_capita,
+         Lower_secondary_completion_rate, School_enrollment, Unemployment, Unsentenced, Police)
+```
+
+In the next step, we perform data transformations again. Formally, including two new years could somehow change the distribution of variables. Therefore, it is better to look at these variables again.
+
+### Homicide
+
+*Homecide* variable still seems to be right-skewed.
+
+### {.tabset .tabset-fade .tabset-pills}
+
+#### Basic form
+
+```{r, echo=F, fig.align='center', out.width = '80%'}
+ggplot(df2) +
+  geom_histogram(aes(Homicide), fill = "Steelblue", color = "black")
+```
+
+#### Log-transformed
+
+```{r, echo=F, fig.align='center', out.width = '80%'}
+ggplot(df2) +
+  geom_histogram(aes(log(Homicide)), fill = "Steelblue", color = "black")
+```
+
+### {-}
+
+Having applied Box-Cox transformation for this variable, we got the result that the optimal $\lambda$ = `r bestNormalize::boxcox(df2$Homicide)$lambda %>% round(4)`, which is almost the same as before.
+
+Generally, the results are similar as before, thus using the same argumentation, we create the logarithm of the dependent variable:
+
+```{r}
+df2$ln_Homicide <- log(df2$Homicide)
+```
+
+### GDP per capita
+
+*GDP_per_capita* variable invariably seems to have much right-skewed distribution.
+
+### {.tabset .tabset-fade .tabset-pills}
+
+#### Basic form
+
+```{r, echo=F, fig.align='center', out.width = '80%'}
+ggplot(df2) +
+  geom_histogram(aes(GDP_per_capita), fill = "Steelblue", color = "black")
+```
+
+#### Log-transformed
+
+```{r, echo=F, fig.align='center', out.width = '80%'}
+ggplot(df2) +
+  geom_histogram(aes(log(GDP_per_capita)), fill = "Steelblue", color = "black")
+```
+
+### {-}
+
+Box-Cox transformation for this variable indicates that the optimal $\lambda$ = `r bestNormalize::boxcox(df2$GDP_per_capita)$lambda %>% round(4)`, which confirms that it is still better to use the logarithm of this variable in the model.
+
+```{r}
+df2$ln_GDP_per_capita <- log(df2$GDP_per_capita)
+```
+
+### Unemployment
+
+*Unemployment* variable is transformed in the exactly same way it was done in the bachelor thesis and in the reproduction part.
+
+```{r}
+df2$Unemployment_int <- cut(df2$Unemployment,
+                            breaks = c(0,5.5,8.5,Inf),
+                            labels = c("_low", "_medium","_high"))
+```
+
+## Model selection
+
+Similarly as before, in this part, we estimate fixed effects model, random effects model and POLS model, but this time with the usage of new, extended dataset.
+
+```{r}
+# fixed effects model
+fixed2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+               Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
+              data = df2,
+              index = c("Country", "Year"),
+              model = "within")
+```
+
+```{r}
+# random effects model
+random2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
+               data = df2,
+               index = c("Country", "Year"),
+               model = "random")
+```
+
+```{r}
+# POLS
+pols2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+              Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
+             data = df2,
+             index = c("Country", "Year"),
+             model = "pooling")
+```
+
+In order to check which of these models should be used in this replication part, we use our earlier defined `model_select()` function. The results are below:
+
+```{r, echo=F}
+model_select(fixed2, random2, pols2) %>%
+  kbl(booktabs = T, caption = "Replication 1st - model select") %>%
+  kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
+```
+
+In this case, based on internally performed statistical tests, we can conclude that effects are significant in both random and fixed effects models. In addition, there is no need for time effects. Therefore, we check the Hausmann test, which indicates that it is better to use fixed effects model in this case.
+
+This means that so far we have obtained the same results as in the reproduction part.
+
 
 
 ***
