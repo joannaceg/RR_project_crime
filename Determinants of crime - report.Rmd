@@ -78,7 +78,6 @@ df3$ln_RnD_expenditure <- log(df3$RnD_expenditure)
 The aim of this project is to reproduce the results of a bachelor thesis study prepared in 2019 by Joanna Ceglinska (one of the authors) and extend the research by using different software, bigger dataset and by implementing more advanced methods of data analysis and visualization. 
 The topic of the original study was investigating the determinants of crime using panel data of 48 countries for the years 2003-2015. The dependent variable was the homicide rate and independent variables included the Gini index, GDP per capita, unemployment rate, variables responsible for measuring the education level in a country and a regressor which presents the effectiveness of judicial system (Unsentenced detainees as a proportion of overall prison population).
 
-
 ---
 
 # An empirical research
@@ -1011,5 +1010,286 @@ In the case of cross-sectional dependence, serial correlation and heteroskedasti
 The exact results are shown in the final, comparative section.
 
 ---
+
+# Replication 2nd
+
+In this part we perform the second out of two replication analysis of our project. All previous assumptions about the software and the method of data filling in remain unchanged. This replication analysis differs from the previous one in that it not only takes into account the two new years (2016 and 2017), but we also add two new variables to the entire analysis that, based on the literature, should have significant effect on our explanatory variable. Those variables are *RnD_expenditure* and *Urbanization_rate* defined as in the Table 1.
+
+The main goal of this replication is naturally to check the robustness of the results when considering the extended database and new assumptions about independent variables.
+
+## Data transormation
+
+In this part of the project, we take into account the observations from all years and all variables from our data. In order to maintain the current transformations of variables, we simply add *RnD_expenditure* and *Urbanization_rate* to the dataset from the previous section.
+
+```{r}
+df3 <- df2 %>%
+  mutate(RnD_expenditure = data$RnD_expenditure,
+         Urbanization_rate = data$Urbanization_rate)
+```
+
+Since we have already performed potention transformations for all variables except *RnD_expenditure* and *Urbanization_rate*, let us take a look at the distributions of these new variables.
+
+### Urbanization_rate
+
+In the case of *Urbanization_rate* it looks as there is no need for any transformations.
+
+```{r, echo=F, fig.align='center', out.width = '80%'}
+ggplot(df3) +
+  geom_histogram(aes(Urbanization_rate), fill = "Steelblue", color = "black")
+```
+
+### RnD_expenditure
+
+The distribution of the *RnD_expenditure* variable is right-skewed and thus its log-transformation should be considered. However, we may as well consider splitting this variable into 4 interval groups as in the `Interval` part below.
+
+### {.tabset .tabset-fade .tabset-pills}
+
+#### Basic form
+
+```{r, echo=F, fig.align='center', out.width = '80%'}
+ggplot(df3) +
+  geom_histogram(aes(RnD_expenditure), fill = "Steelblue", color = "black")
+```
+
+#### Log-transformed
+
+```{r}
+df3$ln_RnD_expenditure <- log(df3$RnD_expenditure)
+```
+
+```{r, echo=F, fig.align='center', out.width = '80%'}
+ggplot(df3) +
+  geom_histogram(aes(log(RnD_expenditure)), fill = "Steelblue", color = "black")
+```
+
+#### Intervals
+
+This split is partly based on quantiles of this variable.
+
+```{r}
+df3$RnD_expenditure_int <- cut(df3$RnD_expenditure,
+                               breaks = c(0,0.5,1,2,5)) 
+```
+
+```{r, echo=F, fig.align='center', out.width = '80%'}
+ggplot(df3) +
+  geom_bar(aes(RnD_expenditure_int), fill = "Steelblue", color = "black")
+```
+
+### {-}
+
+Having applied Box-Cox transformation for this variable, we got the result that the optimal $\lambda$ = `r bestNormalize::boxcox(df3$RnD_expenditure)$lambda %>% round(4)`, which rather indicates log-transformation. We will therefore consider this, but also the interval split presented above.
+
+
+## Model selection
+
+In this part, we estimate fixed effects model, random effects model and POLS model. This time we obviously use the extended dataset with all years and two new variables.
+
+```{r}
+# fixed effects model
+fixed3 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                Lower_secondary_completion_rate + School_enrollment + Unemployment_int + 
+                Unsentenced + Police + Urbanization_rate + ln_RnD_expenditure,
+              data = df3,
+              index = c("Country", "Year"),
+              model = "within")
+```
+
+```{r}
+# random effects model
+random3 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                 Lower_secondary_completion_rate + School_enrollment + Unemployment_int + 
+                 Unsentenced + Police + Urbanization_rate + ln_RnD_expenditure,
+               data = df3,
+               index = c("Country", "Year"),
+               model = "random")
+```
+
+```{r}
+# POLS
+pols3 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                Lower_secondary_completion_rate + School_enrollment + Unemployment_int + 
+                Unsentenced + Police + Urbanization_rate + ln_RnD_expenditure,
+             data = df3,
+             index = c("Country", "Year"),
+             model = "pooling")
+```
+
+In order to check which of these models should be used in the second replication part, we again use `model_select()` function. The results are as follows:
+
+```{r, echo=F}
+model_select(fixed3, random3, pols3) %>%
+  kbl(booktabs = T, caption = "Replication 2nd - model select") %>%
+  kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
+```
+
+Effects are significant in both random and fixed effects models. Additionally, there is no need for time effects. The Hausmann test, in turn, indicates that it is better to use fixed effects model.
+
+This means that for the third time (reproduction and two replication parts) we obtained the results indicating fixed effects model to be chosen, which seems to be good from the reproducible perspective.
+
+
+<!-- ## General-to-specific procedure {.tabset .tabset-fade .tabset-pills} -->
+
+<!-- Due to the results obtained above, we are focusing on the fixed effects model. Since it contains insignificant variables, we perform a *from-general-to-specific* procedure to get rid of them from the model. -->
+
+<!-- ### Base model -->
+
+<!-- Let us take a look at the base model. -->
+
+<!-- <center> -->
+<!-- ```{r, echo=F, results = 'asis'} -->
+<!-- stargazer(fixed3, type = "html", single.row = T, report = "vcs*") -->
+<!-- ``` -->
+<!-- </center> -->
+
+<!-- ### Step 1 -->
+
+<!-- **Deleting *Lower_secondary_completion_rate* ** -->
+
+<!-- First, we generate the model without *Lower_secondary_completion_rate*. -->
+
+<!-- ```{r} -->
+<!-- model2.1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita + -->
+<!--                 School_enrollment + Unemployment_int + Unsentenced + Police, -->
+<!--                 data = df3, -->
+<!--                 index=c("Country", "Year"), -->
+<!--                 model="within") -->
+<!-- ``` -->
+
+<!-- Next, we check the significance of omitting this variable using Wald test. Namely, we test whether the coefficient of the *Lower_secondary_completion_rate* variable is equal to zero. -->
+
+<!-- ```{r, echo=F} -->
+<!-- h <- rbind(c(0,0,0,1,0,0,0,0,0)) -->
+
+<!-- wald.test(b = coef(fixed3), Sigma = vcov(fixed3), L = h) -->
+<!-- ``` -->
+
+<!-- We fail to reject the null hypothesis regarding the introduced constraint. Therefore, we can drop *Lower_secondary_completion_rate*. The model without this variable is as follows: -->
+
+<!-- <center> -->
+<!-- ```{r, echo=F, results = 'asis'} -->
+<!-- stargazer(model2.1, type = "html", single.row = T, report = "vcs*p") -->
+<!-- ``` -->
+<!-- </center> -->
+
+
+<!-- ### Step 2 -->
+
+<!-- **Deleting *Police* ** -->
+
+<!-- First, we generate the model without *Police* and without *Lower_secondary_completion_rate*. -->
+
+<!-- ```{r} -->
+<!-- model2.2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita + -->
+<!--                 School_enrollment + Unemployment_int + Unsentenced, -->
+<!--                 data = df3, -->
+<!--                 index=c("Country", "Year"), -->
+<!--                 model="within") -->
+<!-- ``` -->
+
+<!-- Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *Police* and *Lower_secondary_completion_rate* are both equal to zero. -->
+
+<!-- ```{r, echo=F} -->
+<!-- h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1)) -->
+
+<!-- wald.test(b = coef(fixed3), Sigma = vcov(fixed3), L = h) -->
+<!-- ``` -->
+
+<!-- We fail to reject the null hypothesis regarding the introduced constraints. Therefore, we can also drop *Police*. The model without these variables is as following: -->
+
+<!-- <center> -->
+<!-- ```{r, echo=F, results = 'asis'} -->
+<!-- stargazer(model2.2, type = "html", single.row = T, report = "vcs*p") -->
+<!-- ``` -->
+<!-- </center> -->
+
+
+<!-- ### Step 3 -->
+
+<!-- **Deleting *Inequality* ** -->
+
+<!-- First, we generate the model without *Inequality*, *Police* and *Lower_secondary_completion_rate*. -->
+
+<!-- ```{r} -->
+<!-- model2.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita + -->
+<!--                 School_enrollment + Unemployment_int + Unsentenced, -->
+<!--                 data = df3, -->
+<!--                 index=c("Country", "Year"), -->
+<!--                 model="within") -->
+<!-- ``` -->
+
+<!-- Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *Inequality*, *Police* and *Lower_secondary_completion_rate* are all equal to zero. -->
+
+<!-- ```{r, echo=F} -->
+<!-- h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1),c(1,0,0,0,0,0,0,0,0)) -->
+
+<!-- wald.test(b = coef(fixed3), Sigma = vcov(fixed3), L = h) -->
+<!-- ``` -->
+
+<!-- We fail to reject the null hypothesis regarding the introduced constraints. Therefore, we can also drop *Inequality*, which contradicts literature. The model without these variables is as follows: -->
+
+<!-- <center> -->
+<!-- ```{r, echo=F, results = 'asis'} -->
+<!-- stargazer(model2.3, type = "html", single.row = T, report = "vcs*p") -->
+<!-- ``` -->
+<!-- </center> -->
+
+<!-- ### Final model -->
+
+<!-- All the remaining variables are significant and jointly significant, so our final model is as follows: -->
+
+<!-- <center> -->
+<!-- ```{r, echo=F, results = 'asis'} -->
+<!-- stargazer(model2.3, type = "html", single.row = T, report = "vcs*") -->
+<!-- ``` -->
+<!-- </center> -->
+
+<!-- --- -->
+
+<!-- A trained eye may easily notice that despite the addition of two new years of observation (96 observations) to the dataset, the procedure of removing variables was exactly the same as for reproduction. -->
+
+
+<!-- ## Model diagnostic -->
+
+<!-- Having dropped insignificant variables, we perform the model diagnostic of the final model using our own `model_diagnostic()` function. The results are as follows: -->
+
+<!-- ```{r, echo=F} -->
+<!-- model_diagnostic(model2.3) %>% -->
+<!--   kbl(booktabs = T, caption = "Replication 1st - model diagnostic") %>% -->
+<!--   kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14) -->
+<!-- ``` -->
+
+<!-- This means that residuals of our model are not normally distributed, and at the same time we have to deal with all the problems: cross-sectional dependence, serial correlation and heteroskedasticity - exactly the same as before. -->
+
+<!-- Also, as before, it turns out that we do not need to worry a lot about the result indicating that there is no normal distribution of residuals. Despite rejecting the null hypothesis in the Jarque-Bera test, the residuals are distributed close to normal distribution, which can be observed in the graph below. -->
+
+<!-- ```{r, echo=F, fig.align='center', out.width = '80%'} -->
+<!-- hist(model2.3$residuals, -->
+<!--      density = 20, breaks = 20, prob = T, xlim = c(-1,1), -->
+<!--      xlab="Residuals", -->
+<!--      main="Replication 1st - histogram of the residuals") -->
+<!-- curve(dnorm(x, -->
+<!--             mean = mean(model2.3$residuals), -->
+<!--             sd = sqrt(var(model2.3$residuals))), -->
+<!--       col="steelblue", lwd = 2, add = T, yaxt = "n") -->
+<!-- ``` -->
+
+<!-- In the case of cross-sectional dependence, serial correlation and heteroskedasticity, we again used the appropriate robust estimator using the same functions and parameters as before. All variables chosen in the final model remain significant after introducing the robust estimator. -->
+
+<!-- The exact results are shown in the final, comparative section. -->
+
+
+
+
+<!-- <center> -->
+<!-- ```{r} -->
+<!-- xfsaveun::session_info(c( -->
+<!--     'knitr', 'rmarkdown', 'htmltools', -->
+<!--     'revealjs' -->
+<!-- ), dependencies = FALSE) -> system_version -->
+
+<!-- save(list = "system_version", file = "system_version.RData") -->
+<!-- ``` -->
+<!-- </center> -->
 
 ***
