@@ -18,6 +18,7 @@ output:
 <!-- theme: united, darkly, cerulean, paper, simplex-->
 
 <!-- highlight: zenburn, breezedark, haddock  -->
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = F, message = F, cache = T)
 
@@ -82,7 +83,7 @@ The topic of the original study was investigating the determinants of crime usin
 
 # An empirical research
 
-### Main implemented modifications
+## Main implemented modifications
 
 We have decided to not only replicate the previous research, but also extend it and perform the analysis using different software. Previously, the main tools in the study were Microsoft Excel (for the data tranformations and filling the missing observations) and STATA for statistical and econometric research. Now, we have used R and Python for the regressions and data visualisation.
 
@@ -91,7 +92,7 @@ We have also implemented a new method of missing data imputation - previous work
 In our research, we extended the dataset by two years and two variables. The original dataset included the years 2003-2015 and we appended the years 2016 and 2017 to the database. Additional variables were the research and development expenditures and the urbanization rate. 
 
 
-### The dependent variable
+## The dependent variable
 
 The variable responsible for the represenation of crime is the **homicide rate**, which is the number of deaths caused by another person's violence (per 100,000 population). It is worth noting, that a homicide is not equivalent to murder - it does not have to result from the intention of causing harm - it can also be a consequence of an accident or reckless acts.
 
@@ -112,7 +113,7 @@ The next plot presents how the heterogeneity of the homicide rate has been chang
 plotmeans(Homicide ~ Year, main="Heterogeineity across years", data=data)
 ```
 
-### The dataset description
+## The dataset description
 
 The variables used in the research are presented in the table below. In the second column we show the source of the data, and the last column presents a Worlbank code to quickly find those variables in the database. We choice of determinants was based on the literature review.
 
@@ -161,12 +162,9 @@ Info <- c("",
 
 df_desc <- data.frame(Variable, Source, Info)
 
-# knitr::kable(df_desc, col.names = gsub("[.]", " ", names(df_desc)))
-
 df_desc %>%
   kbl() %>%
   kable_styling()
-
 
 ```
 
@@ -187,20 +185,18 @@ Extended <- c("Years 2003-2017",
 
 df_differences <- data.frame(Original, Extended)
 
-# knitr::kable(df_differences, col.names = gsub("[.]", " ", names(df_differences)))
-
 df_differences %>%
   kable("html", escape = FALSE) %>%
   kable_styling() 
 
 ```
 
-### Filling the missing values
+## Filling the missing values
 
 
 
 
-### Research hypotheses
+## Research hypotheses
 
 The literature review prompts us to formulate hypotheses as to the influence of selected variables on the dependent variable, which will be verified in an empirical study. The hypotheses posed in the bachelor's thesis on which we base the project are as follows:
 
@@ -551,7 +547,7 @@ stargazer(model1.3, type = "html", single.row = T, report = "vcs*")
 
 ## Model diagnostic
 
-Dropping insignificant variable does not end the modeling. Now we need to move on to the model diagnostic. For this, we again used some automatization approach based on our own function - `model_diagnostic()`. It returns the table with the results and conclusions of the statistical tests that are crucial in the model diagnostic, including tests for: normality of residuals, cross-sectional dependence, serial correlation and heteroskedasticity. Details one can see in the function definition below.
+Dropping insignificant variables does not end the modeling. Now we need to move on to the model diagnostic. For this, we again used some automatization approach based on our own function - `model_diagnostic()`. It returns the table with the results and conclusions of the statistical tests that are crucial in the model diagnostic, including tests for: normality of residuals, cross-sectional dependence, serial correlation and heteroskedasticity. Details one can see in the function definition below.
 
 `model_diagnostic()` function takes 2 arguments: model object of the `plm` class and significance level (`sig.level`) with default value set to 5%.
 
@@ -634,7 +630,7 @@ For our final fixed effects model we have the following results:
 ```{r, echo=F}
 model_diagnostic(model1.3) %>% 
   kbl(booktabs = T, caption = "Reproduction - model diagnostic") %>%
-  kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14, )
+  kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
 ```
 
 This means that residuals of our model are not normally distributed, and at the same time we have to deal with all the problems: cross-sectional dependence, serial correlation and heteroskedasticity.
@@ -864,5 +860,156 @@ In this case, based on internally performed statistical tests, we can conclude t
 This means that so far we have obtained the same results as in the reproduction part.
 
 
+## General-to-specific procedure {.tabset .tabset-fade .tabset-pills}
+
+Due to the results obtained above, we are focusing on the fixed effects model. Since it contains insignificant variables, we perform a *from-general-to-specific* procedure to get rid of them from the model.
+
+### Base model
+
+Let us take a look at the base model.
+
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(fixed2, type = "html", single.row = T, report = "vcs*")
+```
+</center>
+
+### Step 1
+
+**Deleting *Lower_secondary_completion_rate* **
+
+First, we generate the model without *Lower_secondary_completion_rate*.
+
+```{r}
+model2.1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                School_enrollment + Unemployment_int + Unsentenced + Police,
+                data = df2,
+                index=c("Country", "Year"),
+                model="within")
+```
+
+Next, we check the significance of omitting this variable using Wald test. Namely, we test whether the coefficient of the *Lower_secondary_completion_rate* variable is equal to zero.
+
+```{r, echo=F}
+h <- rbind(c(0,0,0,1,0,0,0,0,0))
+
+wald.test(b = coef(fixed2), Sigma = vcov(fixed2), L = h)
+```
+
+We fail to reject the null hypothesis regarding the introduced constraint. Therefore, we can drop *Lower_secondary_completion_rate*. The model without this variable is as follows:
+
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(model2.1, type = "html", single.row = T, report = "vcs*p")
+```
+</center>
+
+
+### Step 2
+
+**Deleting *Police* **
+
+First, we generate the model without *Police* and without *Lower_secondary_completion_rate*.
+
+```{r}
+model2.2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
+                School_enrollment + Unemployment_int + Unsentenced,
+                data = df2,
+                index=c("Country", "Year"),
+                model="within")
+```
+
+Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *Police* and *Lower_secondary_completion_rate* are both equal to zero.
+
+```{r, echo=F}
+h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1))
+
+wald.test(b = coef(fixed2), Sigma = vcov(fixed2), L = h)
+```
+
+We fail to reject the null hypothesis regarding the introduced constraints. Therefore, we can also drop *Police*. The model without these variables is as following:
+
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(model2.2, type = "html", single.row = T, report = "vcs*p")
+```
+</center>
+
+
+### Step 3
+
+**Deleting *Inequality* **
+
+First, we generate the model without *Inequality*, *Police* and *Lower_secondary_completion_rate*.
+
+```{r}
+model2.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
+                School_enrollment + Unemployment_int + Unsentenced,
+                data = df2,
+                index=c("Country", "Year"),
+                model="within")
+```
+
+Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *Inequality*, *Police* and *Lower_secondary_completion_rate* are all equal to zero.
+
+```{r, echo=F}
+h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1),c(1,0,0,0,0,0,0,0,0))
+
+wald.test(b = coef(fixed2), Sigma = vcov(fixed2), L = h)
+```
+
+We fail to reject the null hypothesis regarding the introduced constraints. Therefore, we can also drop *Inequality*, which contradicts literature. The model without these variables is as follows:
+
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(model2.3, type = "html", single.row = T, report = "vcs*p")
+```
+</center>
+
+### Final model
+
+All the remaining variables are significant and jointly significant, so our final model is as follows:
+
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(model2.3, type = "html", single.row = T, report = "vcs*")
+```
+</center>
+
+---
+
+A trained eye may easily notice that despite the addition of two new years of observation (96 observations) to the dataset, the procedure of removing variables was exactly the same as for reproduction.
+
+
+## Model diagnostic
+
+Having dropped insignificant variables, we perform the model diagnostic of the final model using our own `model_diagnostic()` function. The results are as follows:
+
+```{r, echo=F}
+model_diagnostic(model2.3) %>%
+  kbl(booktabs = T, caption = "Replication 1st - model diagnostic") %>%
+  kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
+```
+
+This means that residuals of our model are not normally distributed, and at the same time we have to deal with all the problems: cross-sectional dependence, serial correlation and heteroskedasticity - exactly the same as before.
+
+Also, as before, it turns out that we do not need to worry a lot about the result indicating that there is no normal distribution of residuals. Despite rejecting the null hypothesis in the Jarque-Bera test, the residuals are distributed close to normal distribution, which can be observed in the graph below.
+
+```{r, echo=F, fig.align='center', out.width = '80%'}
+hist(model2.3$residuals,
+     density = 20, breaks = 20, prob = T, xlim = c(-1,1),
+     xlab="Residuals",
+     main="Replication 1st - histogram of the residuals")
+curve(dnorm(x,
+            mean = mean(model2.3$residuals),
+            sd = sqrt(var(model2.3$residuals))),
+      col="steelblue", lwd = 2, add = T, yaxt = "n")
+```
+
+In the case of cross-sectional dependence, serial correlation and heteroskedasticity, we again used the appropriate robust estimator using the same functions and parameters as before. All variables chosen in the final model remain significant after introducing the robust estimator.
+
+The exact results are shown in the final, comparative section.
+
+---
 
 ***
