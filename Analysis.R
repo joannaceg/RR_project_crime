@@ -1,7 +1,7 @@
 
 ######################################################################################################
 
-# This file is a working file!
+# Note: This file is a working file!
 
 # It includes, among others, the initial analysis, function definitions (later moved 
 # to the appropriate folder), general-to-specific procedures (with different approaches)
@@ -97,13 +97,15 @@ ggplot(data) +
 # However, we thought about putting it into interval as in your work
 
 
-# Great plot to show how Homicide changed across years (easily can be changed with countries)
+# Great plot to show how Homicide changed across years -----------------------
+# (easily can be changed with countries)
+
 library(gplots)
 
 plotmeans(Homicide ~ Year, main="Heterogeineity across years", data=data)
 
 
-# Basic Reproduction -----------------------------------------------
+# Basic Reproduction --------------------------------------------------------------
 
 # Choosing vars, without RnD_expenditure and Urbanization_rate, filtering appropriate years
 df <- data %>%
@@ -113,7 +115,7 @@ df <- data %>%
   filter(Year %in% 2003:2015)
 
 
-## Data transformation --------------------------------------
+## Data transformation ------------------------------------------------------
 
 # Homicide
 bestNormalize::boxcox(df$Homicide)$lambda
@@ -132,9 +134,10 @@ df$Unemployment_int <- cut(df$Unemployment,
                            labels = c("_low", "_medium","_high"))
 
 table(df$Unemployment_int)
-# Different frequency!! :O 
+# Different frequency than in BA!! 
 
 
+# Variables correlations -----------------------------------------------------------
 library(corrplot)
 
 correlations <- df %>%
@@ -153,7 +156,7 @@ corrplot.mixed(correlations,
 # probably because of the data base change
 
 
-### Model --------------------------------------------
+### Model ------------------------------------------------------------
 
 # fixed effects model
 fixed <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
@@ -368,16 +371,6 @@ coeftest(model_Bachelor, vcovHC(model_Bachelor, method = "arellano", type="HC0",
 
 # Model diagnostic -------------------------------------------------------
 
-# RESET test for plm() model??
-m <- lm(ln_Homicide ~ Education_years + ln_GDP_per_capita + School_enrollment + Unemployment_int + Unsentenced,
-        data	=	df)
-
-resettest(ln_Homicide ~ Inequality + ln_GDP_per_capita + School_enrollment + Police + Unsentenced,
-          power	=	2:3,
-          type	=	"regressor",
-          data	=	df)
-
-
 # test Jarque-Bera
 library(tseries)
 
@@ -393,7 +386,6 @@ pcdtest(model1.3, test = c("cd"))
 # Testing for serial correlation for fixed model
 pbgtest(model1.3)
 # there is serial correlation
-# we have to do some time series modeling ?
 
 
 # Testing for heteroskedasticity
@@ -486,8 +478,6 @@ model_select <- function(fixed, random, pols, sig.level = 0.05) {
 
 }
 
-source("functions/model_select.R")
-
 model_select(fixed,random, pols) %>% knitr::kable(align = "c")
 
 
@@ -552,11 +542,6 @@ model_diagnostic <- function(model, sig.level = 0.05) {
   
 }
 
-source("functions/model_diagnostic.R")
-
-model_diagnostic(model1.3) %>% 
-  kbl(booktabs = T) %>%
-  kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 22)
 
 
 # Replication (adding new observations) ----------------------------------------------
@@ -587,7 +572,6 @@ df2$ln_GDP_per_capita <- log(df2$GDP_per_capita)
 
 # Unemployment
 # We transform it exactly in the same way it was done in the Bachelor thesis.
-# Or maybe we should chenage sth ???
 df2$Unemployment_int <- cut(df2$Unemployment,
                            breaks = c(0,5.5,8.5,Inf),
                            labels = c("low", "medium","high"))
@@ -596,7 +580,7 @@ table(df2$Unemployment_int)
 
 
 
-### Model --------------------------------------------
+### Model ----------------------------------------------------------------
 
 # fixed effects model
 fixed2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
@@ -735,10 +719,7 @@ summary(model2.3)
 
 # Model diagnostic -------------------------------------------------------
 
-# RESET test for plm() model??
-
-# test Jarque-Bera - test na normalność rozkładu błędów losowych ??
-
+# test Jarque-Bera - add
 
 # Testing for cross-sectional dependence/contemporaneous correlation:
 # using Breusch-Pagan LM test of independence and Pesaran CD test
@@ -749,8 +730,6 @@ pcdtest(model2.3, test = c("cd"))
 # Testing for serial correlation for fixed model
 pbgtest(model2.3)
 # there is serial correlation
-# we have to do some time series modeling ?
-
 
 # Testing for heteroskedasticity
 bptest(ln_Homicide ~ Education_years + ln_GDP_per_capita +
@@ -759,10 +738,10 @@ bptest(ln_Homicide ~ Education_years + ln_GDP_per_capita +
        studentize=F)
 # The null hypothesis for the Breusch-Pagan test is homoskedasticity.
 
-
 # Note: again we have all: heteroskedasticity,serial correlation and cross-sectional dependence
 
-# Estimators ------------------------------------------------------
+
+# Estimators -----------------------------------------------------------------
 
 ### As before we use:
 # "arellano" - both heteroskedasticity and serial correlation (recommended for fixed effects)
@@ -974,10 +953,7 @@ coeftest(model3.5)
 
 # Model diagnostic -------------------------------------------------------
 
-# RESET test for plm() model??
-
-# test Jarque-Bera - test na normalność rozkładu błędów losowych ??
-
+# test Jarque-Bera - add
 
 # Testing for cross-sectional dependence/contemporaneous correlation:
 # using Breusch-Pagan LM test of independence and Pesaran CD test
@@ -1000,7 +976,8 @@ bptest(ln_Homicide ~ ln_GDP_per_capita + School_enrollment + Unemployment_int +
 
 # Note: again we have all: heteroskedasticity,serial correlation and cross-sectional dependence
 
-# Estimators ------------------------------------------------------
+
+# Estimators ------------------------------------------------------------
 
 ### As before we use:
 # "arellano" - both heteroskedasticity and serial correlation (recommended for fixed effects)
@@ -1009,17 +986,20 @@ coeftest(model3.5, vcovHC(model3.5, method = "arellano", type="HC0", cluster = "
 # All variables still significant
 
 # Note: this time when we take the model with Education_years, its coefficient is significant!!
-# Should we take this model??
+# Should we take this model?
 coeftest(model3.4, vcovHC(model3.4, method = "arellano", type="HC0", cluster = "time"))
 
 model3.final <- coeftest(model3.4, vcovHC(model3.4, method = "arellano", type="HC0", cluster = "time"))
+
+
+# Stargazer package -----------------------------------------
 
 library(stargazer)
 
 
 stargazer(model_Bachelor, model1.3, model2.3, model3.4, type="text")
 
-# This one should be displyed, but it lack of statistics... how to change it?
 stargazer(model_Bachelor, model1.final, model2.final, model3.final, type="text")
+
 
 
