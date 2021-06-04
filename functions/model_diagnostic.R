@@ -6,7 +6,7 @@
 # serial correlation and heteroskedasticity.
 
 # It takes 2 arguments: model object of the `plm` class and significance level ('sig.level') 
-# with default value set to 5%.
+# with the default value set to 5%.
 
 
 model_diagnostic <- function(model, sig.level = 0.05) {

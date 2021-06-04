@@ -4,7 +4,7 @@
 # The function that returns the table with the results of the statistical tests that 
 # are necessary in the model choice. 
 # It takes 4 arguments: fixed effects model object, random effects model object,
-# POLS model object, and significance level ('sig.level') with default value set to 5%.
+# POLS model object, and significance level ('sig.level') with the default value set to 5%.
 
 
 model_select <- function(fixed, random, pols, sig.level = 0.05) {
