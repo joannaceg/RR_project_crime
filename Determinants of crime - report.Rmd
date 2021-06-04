@@ -47,30 +47,6 @@ colnames(data) <- c("Country", "Year", "Homicide", "Inequality", "Education_year
                     "Lower_secondary_completion_rate", "RnD_expenditure", "School_enrollment", 
                     "Unemployment", "Urbanization_rate","Unsentenced", "Police")
 
-# Data transformation
-df2 <- data %>%
-  select(Country, Year, Homicide, Inequality, Education_years, 
-         GDP_per_capita, Lower_secondary_completion_rate, 
-         School_enrollment, Unemployment, Unsentenced, Police)
-
-df2$ln_Homicide <- log(df2$Homicide)
-df2$ln_GDP_per_capita <- log(df2$GDP_per_capita)
-df2$Unemployment_int <- cut(df2$Unemployment,
-                           breaks = c(0,5.5,8.5,Inf),
-                           labels = c("_low", "_medium","_high"))
-
-df3 <- data %>%
-  select(Country, Year, Homicide, Inequality, Education_years, 
-         GDP_per_capita, Lower_secondary_completion_rate, 
-         School_enrollment, Unemployment, Unsentenced, Police,
-         Urbanization_rate, RnD_expenditure)
-
-df3$ln_Homicide <- log(df3$Homicide)
-df3$ln_GDP_per_capita <- log(df3$GDP_per_capita)
-df3$Unemployment_int <- cut(df3$Unemployment,
-                            breaks = c(0,5.5,8.5,Inf),
-                            labels = c("_low", "_medium","_high"))
-df3$ln_RnD_expenditure <- log(df3$RnD_expenditure)
 ```
 
 # Introduction
@@ -1010,6 +986,10 @@ In the case of cross-sectional dependence, serial correlation and heteroskedasti
 
 The exact results are shown in the final, comparative section.
 
+```{r, echo=F}
+model2.final <- coeftest(model2.3, vcovHC(model2.3, method = "arellano", type="HC0", cluster = "time"))
+```
+
 ---
 
 # Replication 2nd
@@ -1316,11 +1296,11 @@ curve(dnorm(x,
 In the case of the other three model diagnostic problems, we used the mentioned earlier appropriate robust estimator that help us to deal with all of them. 
 
 <center>
-```{r, echo=F}
+```{r, echo=F, results = 'asis'}
 model3.final <- coeftest(model3.4, vcovHC(model3.4, method = "arellano", type="HC0", cluster = "time"))
 
 stargazer(coeftest(model3.4), model3.final,
-          type = "text",
+          type = "html",
           column.labels = c(" ","with robust estimator"),
           title = "Replication 2nd model with and without robust estimator")
 
@@ -1329,16 +1309,61 @@ stargazer(coeftest(model3.4), model3.final,
 
 All the factors are, obviously, the same in both cases. The difference is in the significance levels of the variables. After introducing the robust estimator, the significance of the variables improved, in particular the *Education_years* variable, about which we wrote earlier, turned out that should be treated as significant.
 
+# Conclusion
 
-<!-- <center> -->
+Finally, we can move to the conclusion part. All four models (BA, reproduction and both replication) are displayed together below. All those results were obtained after introducing the appropriate robust estimators to those models.
+
+<center>
+```{r, echo=F, results = 'asis'}
+stargazer(model_BA.final, model1.final, model2.final, model3.final, 
+          type = "html",
+          column.labels = c("Bachelor","Reproduction","Replication 1", "Replication 2"),
+          title = "Comparion of all the models")
+```
+</center>
+
+First of all, it is worth mentioning once again that the model from the bachelor thesis differed significantly from the others. Moreover, from the perspective of our analysis, it contains insignificant variables.
+
+The remaining models, on the other hand, are generally very similar to each other and indicated the reproducibility of the results. Naturally, they slightly differed on the individual levels, in particular, after adding a significant variable, some coefficients changed due to the correlation issues between the variables. Ont the other hand, additional significant variable resulted in a better model.
+
+Worth noticing is also that for some variables, such as *School_enrollment* or *Unsentenced*, all models indicated nearly identical estimates and their deviations.
+
+
+## Verification of hypotheses
+
+Certainly, it is not enough just to compare models, significant variables or coefficients. Therefore, let us now check whether these models have common conclusions regarding the hypotheses. For this reason, we have prepared the following table indicating whether a given model confirms the hypothesis (`T`) or whether it is not possible to infer its correctness based on this model (` F`).
+
+```{r, echo=F}
+hyp <- data.frame(H = c("income inequality", "GDP per capita", "the level of education (basic)",
+                        "the level of education (tertiary)", "the ease of detecting a crime",
+                        "poor labor market conditions", "the effectiveness of the justice system"),
+                  Bachelor_thesis = c("T","T","F","T","T","F","T"),
+                  Reproduction = c("F","T","T","T","F","T","T"),
+                  Replication_1 = c("F","T","T","T","F","T","T"),
+                  Replication_2 = c("F","T","T","T","F","T","T")
+                  )
+
+colnames(hyp)[1] <- "Hypothesis connected with..."
+
+hyp %>% 
+  kbl(booktabs = T, align = c('l','c','c','c','c')) %>%
+  kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 16)
+```
+
+It is easy to notice that all three models estimated in our reproducible analysis (i.e. reproduction and two replication models) have exactly the same inference for hypotheses. However, some of these results are not confirmed in drawing conclusions based on the model from the bachelor thesis. Nevertheless, for the same method of filling in the missing data, the estimated models gave us almost the same results, and certainly the same conclusions, even when extending the number of observations and the set of independent variables.
+
+Therefore, the results of our project illustrates very well how important it is to properly prepare the database and precisely fill in the missing data. We believe that this was the main reason for the significant discrepancy in results. 
+
+It is very interesting and we are honestly glad that we obtained something different in our reproducible project than in the original work.
+
+
 <!-- ```{r} -->
-<!-- xfsaveun::session_info(c( -->
+<!-- xfun::session_info(c( -->
 <!--     'knitr', 'rmarkdown', 'htmltools', -->
 <!--     'revealjs' -->
 <!-- ), dependencies = FALSE) -> system_version -->
 
 <!-- save(list = "system_version", file = "system_version.RData") -->
 <!-- ``` -->
-<!-- </center> -->
 
 ***
