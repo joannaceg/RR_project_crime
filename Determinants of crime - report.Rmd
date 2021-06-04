@@ -16,7 +16,6 @@ output:
     
 ---
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = F, message = F, cache = T)
 
@@ -51,7 +50,7 @@ colnames(data) <- c("Country", "Year", "Homicide", "Inequality", "Education_year
 
 The aim of this project is to reproduce and replicate the results of a bachelor thesis study prepared in 2019 by Joanna Ceglinska (one of the authors) and extend the research by using different software, extended dataset, and by implementing more advanced methods of data analysis and visualization.
 
-The topic of the original study was investigating the determinants of crime using panel data of 48 countries for the years 2003-2015. The dependent variable was the homicide rate and independent variables included the Gini index, GDP per capita, unemployment rate, variables responsible for measuring the education level in a country, and a regressor which presents the effectiveness of the judicial system (Unsentenced detainees as a proportion of overall prison population).
+The topic of the original study was investigating the determinants of crime using panel data of 48 countries for the years 2003-2015. The dependent variable was the homicide rate and independent variables included the Gini index, GDP per capita, unemployment rate, variables responsible for measuring the education level in a country, and a regressor which presents the effectiveness of the judicial system (unsentenced detainees as a proportion of overall prison population).
 
 ---
 
@@ -74,7 +73,7 @@ The variable responsible for the representation of crime is the **homicide rate*
 
 This variable was chosen because is a serious violent crime, that causes significant harm to other people. It is one of the few crimes that is carefully tracked and is not neglected. The investigation associated with this type of crime is usually careful and meticulous. What is more, using a variable associated with a bribe or a financial fraud would be more complicated due to the differences in definitions of those crimes and law regulations among countries.
 
-The distribution of this variable is presented in the plot below. The distribution is highly asymmetrical and right-skewed - the majority of observations are concentrated around zero. Therefore, we have decided to use a logarithmic transformation of the homicide rate in the research, similarly as it was done in the original work. 
+The distribution of this variable is presented in the plot below. The distribution is highly asymmetrical and right-skewed. The majority of observations are concentrated around zero. Therefore, we have decided to use a logarithmic transformation of the homicide rate in the research, similarly as it was done in the original work. 
 
 ```{r, echo=F, fig.align='center', out.width = '80%'}
 ggplot(data) +
@@ -157,7 +156,7 @@ df_differences %>%
 
 ## Filling the missing values
 
-First of all, it is worth mentioning that filling the missing values in the database for the bachelor thesis was done manually, without any specific knowledge. The author mainly relied on visual trends, which made the results vulnerable to significant errors in later estimates.
+First of all, it is worth mentioning that filling the missing values in the database for the bachelor thesis was done manually, without any specific knowledge. The author mainly relied on visual trends, which made the results vulnerable to significant errors in later estimations.
 
 In our project, we decided to implement our own function based on a moving average algorithm with two-period window that fills in the blanks automatically based on existing values. Thanks to this, the results should be more consistent and the estimators less biased. What is more, this fast and reusable algorithm can be easily used in possible later replications.
 
@@ -193,7 +192,7 @@ def interpolate_ma(df, window):
 
 ## Research hypotheses
 
-The literature review prompts us to formulate hypotheses as to the influence of selected variables on the dependent variable, which will be verified in an empirical study. The hypotheses posed in the bachelor's thesis on which we base the project are as follows:
+The literature review prompts us to formulate hypotheses as to the influence of selected variables on the dependent variable, which will be verified in an empirical study. The hypotheses posed in the bachelor thesis on which we base the project are as follows:
 
 * Income inequality has a negative effect on the homicide rate.
 * GDP per capita has a negative effect on the homicide rate.
@@ -204,6 +203,7 @@ The literature review prompts us to formulate hypotheses as to the influence of 
 
 At the end of our analysis, we will check whether our reproduction and replication models confirm these hypotheses. Next, we will compare it with the results of the model obtained in the bachelor thesis.
 
+---
 
 # Reproduction
 
@@ -214,7 +214,7 @@ We first decided to briefly present how in general we deal with choosing the app
 #### The general schema of the type of model selection in the panel data
 
 <div style= "float:right">
-[source](https://l.facebook.com/l.php?u=https%3A%2F%2Frpubs.com%2FRitaTang%2Fplm%3Ffbclid%3DIwAR3osT_Yh_Xk54XA3u7sgbYoyjrglOP6yIwI6LDaYyBZOFfcXm5qj97nrKI&h=AT1jYC5erhkfPTeDDYzaXwPP13bFZ6mFpeLUayUzD9hsQfZg-vcc7s7rGMEc-6vCEO4Cs8BXwC4RzR5uODQmzX70Z8hBMDa3ndRapPOW-PX62bpJ0VJlVgO33wqw4tlA3ltn)
+[source](https://rpubs.com/RitaTang/plm)
 </div>
 
 ```{r , echo=FALSE, out.width = '55%', fig.align='center'}
@@ -225,9 +225,11 @@ At the beginning, we check whether the random and fixed effects are significant 
 
 In our analysis, we also decided to check additionally whether time effects are needed in the model (again using the appropriate Breusch-Pagan Lagrange Multiplier Test). Also in general, the significance level naturally can be chosen different than 5% as on the graph. Setting this level will be possible, among others, in the functions that are an automated part of our analysis.
 
+---
+
 ## Data transformation
 
-Having filled in the missing values in the data, for reproduction purposes, we limit the data to the variables that were considered in the bachelor's thesis (i.e. without *RnD_expenditure* and *Urbanization_rate*) for the years up to 2015.
+Having filled in the missing values in the data, for reproduction purposes, we limit the data to the variables that were considered in the bachelor thesis (i.e. without *RnD_expenditure* and *Urbanization_rate*) for the years up to 2015.
 
 ```{r}
 df <- data %>%
@@ -258,7 +260,7 @@ ggplot(df) +
   geom_histogram(aes(log(Homicide)), fill = "Steelblue", color = "black")
 ```
 
-### {-}
+### {.toc-ignore}
 
 Having applied Box-Cox transformation for this variable, we got the result that the optimal $\lambda$ = `r bestNormalize::boxcox(df$Homicide)$lambda %>% round(4)`.
 
@@ -290,7 +292,7 @@ ggplot(df) +
   geom_histogram(aes(log(GDP_per_capita)), fill = "Steelblue", color = "black")
 ```
 
-### {-}
+### {.toc-ignore}
 
 Box-Cox transformation for this variable indicates that the optimal $\lambda$ = `r bestNormalize::boxcox(df$GDP_per_capita)$lambda %>% round(4)`, which confirms that it is better to use the logarithm of this variable in the model. The same transformation was made in the original analysis.
 
@@ -308,6 +310,8 @@ df$Unemployment_int <- cut(df$Unemployment,
                            labels = c("_low", "_medium","_high"))
 ```
 
+---
+
 ## Panel data models
 
 In this part we finally estimate three kinds of model for the panel data, that is fixed effects model, random effects model and POLS model. To do this, we use `plm()` function from the package of the same name. 
@@ -317,7 +321,7 @@ In order to obtain the appropriate models, we need to choose the corresponding v
 ```{r}
 # fixed effects model
 fixed <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-             Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
+               Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
              data = df, 
              index = c("Country", "Year"),
              model = "within")
@@ -326,10 +330,10 @@ fixed <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
 ```{r}
 # random effects model
 random <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-               Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
-             data = df, 
-             index = c("Country", "Year"),
-             model = "random")
+                Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
+              data = df, 
+              index = c("Country", "Year"),
+              model = "random")
 ```
 
 ```{r}
@@ -340,6 +344,8 @@ pols <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
             index = c("Country", "Year"),
             model = "pooling")
 ```
+
+---
 
 ## Model selection
 
@@ -422,7 +428,9 @@ model_select(fixed, random, pols) %>%
   kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
 ```
 
-In this case, based on internally performed statistical tests, we can conclude that effects are significant in both random and fixed effects models. In addition, there is no need for time effects. Therefore, we check the Hausmann test, which indicates that it is better to use fixed effects model in this case.
+In this case, based on internally performed statistical tests, we can conclude that effects are significant in both random and fixed effects models. In addition, there is no need for time effects. Therefore, we check the Hausmann test, which indicates that it is better to use fixed effects model in this case. So far, results are similar to the original work.
+
+---
 
 ## General-to-specific procedure {.tabset .tabset-fade .tabset-pills}
 
@@ -432,7 +440,7 @@ Although we could have automated this part as well, we found it an inappropriate
 
 ### Base model
 
-Let us take a look at the base model, which we called `fixed`.
+Let us just take a look at the base model, which we called `fixed`.
 
 <center>
 ```{r, echo=F, results = 'asis'}
@@ -448,7 +456,7 @@ First, we generate the model without *Lower_secondary_completion_rate*.
 
 ```{r}
 model1.1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-                School_enrollment + Unemployment_int + Unsentenced + Police,
+                  School_enrollment + Unemployment_int + Unsentenced + Police,
                 data = df,
                 index=c("Country", "Year"),
                 model="within")
@@ -479,7 +487,7 @@ First, we generate the model without *Police* and without *Lower_secondary_compl
 
 ```{r}
 model1.2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-                School_enrollment + Unemployment_int + Unsentenced,
+                  School_enrollment + Unemployment_int + Unsentenced,
                 data = df,
                 index=c("Country", "Year"),
                 model="within")
@@ -510,7 +518,7 @@ First, we generate the model without *Inequality*, *Police* and *Lower_secondary
 
 ```{r}
 model1.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
-                School_enrollment + Unemployment_int + Unsentenced,
+                  School_enrollment + Unemployment_int + Unsentenced,
                 data = df,
                 index=c("Country", "Year"),
                 model="within")
@@ -541,6 +549,8 @@ All the remaining variables are significant and jointly significant, so our fina
 stargazer(model1.3, type = "html", single.row = T, report = "vcs*")
 ```
 </center>
+
+## {.toc-ignore}
 
 ---
 
@@ -655,11 +665,11 @@ What about the other three problems? We need to use the appropriate robust estim
 
 ### Robust estimator
 
-The robust estimator we are using below (`vcovHC()` function with the `method` argument set to `arellano`) is appropriate for both heteroskedasticity and serial correlation problems. Additionally, it is also highly recommended in the case of the fixed effects models.
+The robust estimator we are using below (`vcovHC()` function with the `method` argument set to `"arellano"`) is appropriate for both heteroskedasticity and serial correlation problems. Additionally, it is also highly recommended in the case of the fixed effects models.
 
 How about the cross-sectional dependence?
 
-In general, since we have less than 20 years of observations it is sometimes said that there is no need to deal with the cross-sectional dependence. Nevertheless, we decided to include also this issue in our robust estimator. Namely, by setting `cluster = "time"` inside `vcovHC()` function, observations are clustered by "time" to account for the cross-sectional correlation.
+In general, since we have less than 20 years of observations it is sometimes said that there is no need to deal with the cross-sectional dependence. Nevertheless, we decided to include also this issue in our robust estimator. Namely, by setting `cluster = "time"` inside `vcovHC()` function, observations are clustered by "time" to account for the cross-sectional correlation, which jointly solves all of our problems.
 
 ```{r, eval=F}
 coeftest(model1.3,
@@ -728,7 +738,10 @@ stargazer(model_BA.final, model1.final,
 ```
 </center>
 
+
 As we can see, our reproduction model differs from the one from the bachelor thesis. First of all, we have different variables taken into account as significant ones. Secondly, the two variables in the BA model are not significant. On the other hand, we may observe some similarities in the parameters values and their signs (see *Unsentenced* or *School_enrollment* variables).
+
+---
 
 # Replication 1st 
 
@@ -736,9 +749,11 @@ In this part, we perform the first of two replication analyses of our project. T
 
 The main goal of this replication is naturally to check the robustness of the results when considering the extended database.
 
+---
+
 ## Data transformation
 
-In the first replication part, as described above we limit the data to the variables that were considered in the bachelor's thesis (i.e. without *RnD_expenditure* and *Urbanization_rate*), but this time for all the years in the database (including 2016 and 2017).
+In the first replication part, as described above we limit the data to the variables that were considered in the bachelor thesis (i.e. without *RnD_expenditure* and *Urbanization_rate*), but this time for all the years in the database (including 2016 and 2017).
 
 ```{r}
 df2 <- data %>%
@@ -768,7 +783,7 @@ ggplot(df2) +
   geom_histogram(aes(log(Homicide)), fill = "Steelblue", color = "black")
 ```
 
-### {-}
+### {.toc-ignore}
 
 Having applied Box-Cox transformation for this variable, we got the result that the optimal $\lambda$ = `r bestNormalize::boxcox(df2$Homicide)$lambda %>% round(4)`, which is almost the same as before.
 
@@ -780,7 +795,7 @@ df2$ln_Homicide <- log(df2$Homicide)
 
 ### GDP per capita
 
-*GDP_per_capita* variable invariably seems to have much right-skewed distribution.
+*GDP_per_capita* variable invariably still seems to have right-skewed distribution.
 
 ### {.tabset .tabset-fade .tabset-pills}
 
@@ -798,7 +813,7 @@ ggplot(df2) +
   geom_histogram(aes(log(GDP_per_capita)), fill = "Steelblue", color = "black")
 ```
 
-### {-}
+### {.toc-ignore}
 
 Box-Cox transformation for this variable indicates that the optimal $\lambda$ = `r bestNormalize::boxcox(df2$GDP_per_capita)$lambda %>% round(4)`, which confirms that it is still better to use the logarithm of this variable in the model.
 
@@ -816,6 +831,8 @@ df2$Unemployment_int <- cut(df2$Unemployment,
                             labels = c("_low", "_medium","_high"))
 ```
 
+---
+
 ## Model selection
 
 Similarly as before, in this part, we estimate fixed effects model, random effects model and POLS model, but this time with the usage of the new, extended dataset.
@@ -823,7 +840,7 @@ Similarly as before, in this part, we estimate fixed effects model, random effec
 ```{r}
 # fixed effects model
 fixed2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-               Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
+                Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
               data = df2,
               index = c("Country", "Year"),
               model = "within")
@@ -832,7 +849,7 @@ fixed2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
 ```{r}
 # random effects model
 random2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-                Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
+                 Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
                data = df2,
                index = c("Country", "Year"),
                model = "random")
@@ -841,7 +858,7 @@ random2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
 ```{r}
 # POLS
 pols2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-              Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
+               Lower_secondary_completion_rate + School_enrollment + Unemployment_int + Unsentenced + Police,
              data = df2,
              index = c("Country", "Year"),
              model = "pooling")
@@ -859,6 +876,7 @@ In this case, based on internally performed statistical tests, we can conclude t
 
 This means that so far we have obtained the same results as in the reproduction part.
 
+---
 
 ## General-to-specific procedure {.tabset .tabset-fade .tabset-pills}
 
@@ -882,7 +900,7 @@ First, we generate the model without *Lower_secondary_completion_rate*.
 
 ```{r}
 model2.1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-                School_enrollment + Unemployment_int + Unsentenced + Police,
+                  School_enrollment + Unemployment_int + Unsentenced + Police,
                 data = df2,
                 index=c("Country", "Year"),
                 model="within")
@@ -913,7 +931,7 @@ First, we generate the model without *Police* and without *Lower_secondary_compl
 
 ```{r}
 model2.2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-                School_enrollment + Unemployment_int + Unsentenced,
+                  School_enrollment + Unemployment_int + Unsentenced,
                 data = df2,
                 index=c("Country", "Year"),
                 model="within")
@@ -944,7 +962,7 @@ First, we generate the model without *Inequality*, *Police* and *Lower_secondary
 
 ```{r}
 model2.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
-                School_enrollment + Unemployment_int + Unsentenced,
+                  School_enrollment + Unemployment_int + Unsentenced,
                 data = df2,
                 index=c("Country", "Year"),
                 model="within")
@@ -976,10 +994,13 @@ stargazer(model2.3, type = "html", single.row = T, report = "vcs*")
 ```
 </center>
 
+## {.toc-ignore}
+
 ---
 
 A trained eye may easily notice that despite the addition of two new years of observation (96 observations) to the dataset, the procedure of removing variables was exactly the same as for reproduction.
 
+---
 
 ## Model diagnostic
 
@@ -1021,6 +1042,8 @@ model2.final <- coeftest(model2.3, vcovHC(model2.3, method = "arellano", type="H
 In this part, we perform the second out of two replication analyses of our project. All previous assumptions about the software and the method of data filling in remain unchanged. This replication analysis differs from the previous one in that it not only takes into account the two new years (2016 and 2017), but we also add two new variables to the entire analysis that, based on the literature, should have significant effect on our explanatory variable. Those variables are *RnD_expenditure* and *Urbanization_rate* defined as in the first table.
 
 The main goal of this replication is naturally to check the robustness of the results when considering the extended database and new assumptions about independent variables.
+
+---
 
 ## Data transformation
 
@@ -1081,16 +1104,17 @@ ggplot(df3) +
   geom_bar(aes(RnD_expenditure_int), fill = "Steelblue", color = "black")
 ```
 
-### {-}
+### {.toc-ignore}
 
 Having applied Box-Cox transformation for this variable, we got the result that the optimal $\lambda$ = `r bestNormalize::boxcox(df3$RnD_expenditure)$lambda %>% round(4)`, which rather indicates log-transformation. We will therefore consider this, but also the interval split presented above.
 
+---
 
 ## Model selection
 
 In this part, we estimate fixed effects model, random effects model and POLS model. This time we obviously use the extended dataset with all years and two new variables.
 
-As one can notice, we decided to show the case in which we have chosen the log-transformed *RnD_expenditure* variable, not the interval one. Actually, we tested both of these approaches and both boiled down to the same result, which is presented shown in the *General-to-specific procedure* section.
+As one can notice, we decided to show the case in which we have chosen the log-transformed *RnD_expenditure* variable, not the interval one. Actually, we tested both of these approaches and both boiled down to the same result, which is presented shown in the `General-to-specific procedure` section.
 
 ```{r}
 # fixed effects model
@@ -1134,6 +1158,7 @@ Effects are significant in both random and fixed effects models. Additionally, t
 
 This means that for the third time (reproduction and two replication parts) we obtained the results indicating fixed effects model to be chosen, which seems to be good from the reproducible perspective.
 
+---
 
 ## General-to-specific procedure {.tabset .tabset-fade .tabset-pills}
 
@@ -1157,10 +1182,10 @@ First, we generate the model without *Lower_secondary_completion_rate*.
 
 ```{r}
 model3.1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita + School_enrollment +
-                Unemployment_int + Unsentenced + Police + Urbanization_rate + ln_RnD_expenditure,
-              data = df3,
-              index = c("Country", "Year"),
-              model = "within")
+                  Unemployment_int + Unsentenced + Police + Urbanization_rate + ln_RnD_expenditure,
+                data = df3,
+                index = c("Country", "Year"),
+                model = "within")
 ```
 
 Next, we check the significance of omitting this variable using the Wald test. Namely, we test whether the coefficient of the *Lower_secondary_completion_rate* variable is equal to zero.
@@ -1188,10 +1213,10 @@ First, we generate the model without *Police* and without *Lower_secondary_compl
 
 ```{r}
 model3.2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita + School_enrollment +
-                Unemployment_int + Unsentenced + Urbanization_rate + ln_RnD_expenditure,
-              data = df3,
-              index = c("Country", "Year"),
-              model = "within")
+                  Unemployment_int + Unsentenced + Urbanization_rate + ln_RnD_expenditure,
+                data = df3,
+                index = c("Country", "Year"),
+                model = "within")
 ```
 
 Next, we check the significance of omitting these variables using the Wald test. Namely, we test whether the coefficients of *Police* and *Lower_secondary_completion_rate* are both equal to zero.
@@ -1219,10 +1244,10 @@ First, we generate the model without *Inequality*, *Police* and *Lower_secondary
 
 ```{r}
 model3.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita + School_enrollment +
-                Unemployment_int + Unsentenced + Urbanization_rate + ln_RnD_expenditure,
-              data = df3,
-              index = c("Country", "Year"),
-              model = "within")
+                  Unemployment_int + Unsentenced + Urbanization_rate + ln_RnD_expenditure,
+                data = df3,
+                index = c("Country", "Year"),
+                model = "within")
 ```
 
 Next, we check the significance of omitting these variables using the Wald test. Namely, we test whether the coefficients of *Inequality*, *Police* and *Lower_secondary_completion_rate* are all equal to zero.
@@ -1250,10 +1275,10 @@ First, we generate the model without *ln_RnD_expenditure*, *Inequality*, *Police
 
 ```{r}
 model3.4 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita + School_enrollment +
-                Unemployment_int + Unsentenced + Urbanization_rate,
-              data = df3,
-              index = c("Country", "Year"),
-              model = "within")
+                  Unemployment_int + Unsentenced + Urbanization_rate,
+                data = df3,
+                index = c("Country", "Year"),
+                model = "within")
 ```
 
 Next, we check the significance of omitting these variables using the Wald test. Namely, we test whether the coefficients of *ln_RnD_expenditure*, *Inequality*, *Police*, and *Lower_secondary_completion_rate* are all equal to zero.
@@ -1285,12 +1310,15 @@ stargazer(model3.4, type = "html", single.row = T, report = "vcs*")
 ```
 </center>
 
+## {.toc-ignore}
+
 ---
 
 Note that this time by the procedure we removed exactly the same independent variables as in the case of reproduction and first replication. Additionally, one of the newly added to the analysis variables (*RnD_expenditure*) was dropped. 
 
 Interestingly, it was checked that *RnD_expenditure* remained insignificant not only when it was log-transformed, but also when it was a factor variable made based on the previously described division into intervals.
 
+---
 
 ## Model diagnostic
 
@@ -1331,7 +1359,11 @@ stargazer(coeftest(model3.4), model3.final,
 ```
 </center>
 
+ 
+
 All the factors are, obviously, the same in both cases. The difference is in the significance levels of the variables. After introducing the robust estimator, the significance of the variables improved, in particular the *Education_years* variable, about which we wrote earlier, turned out that should be treated as significant.
+
+---
 
 # Conclusion
 
@@ -1352,6 +1384,7 @@ The remaining models, on the other hand, are generally very similar to each othe
 
 Worth noticing is also that for some variables, such as *School_enrollment* or *Unsentenced*, all models indicated nearly identical estimates and their deviations.
 
+---
 
 ## Verification of hypotheses
 
@@ -1376,7 +1409,7 @@ hyp %>%
 
 It is easy to notice that all three models estimated in our reproducible analysis (i.e. reproduction and two replication models) have exactly the same inference for hypotheses. However, some of these results are not confirmed in drawing conclusions based on the model from the bachelor thesis. Nevertheless, for the same method of filling in the missing data, the estimated models gave us almost the same results, and certainly the same conclusions, even when extending the number of observations and the set of independent variables.
 
-Therefore, the results of our project illustrate very well how important it is to properly prepare the database and precisely fill in the missing data. We believe that this was the main reason for the significant discrepancy in results. 
+**Therefore, the results of our project illustrate very well how important it is to properly prepare the database and precisely fill in the missing data. We believe that this was the main reason for the significant discrepancy in results.**
 
 It is very interesting and we are honestly glad that we obtained something different in our reproducible project than in the original work.
 
