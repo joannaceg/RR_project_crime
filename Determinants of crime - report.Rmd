@@ -15,9 +15,7 @@ output:
     highlight: zenburn
     
 ---
-<!-- theme: united, darkly, cerulean, paper, simplex-->
 
-<!-- highlight: zenburn, breezedark, haddock  -->
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = F, message = F, cache = T)
@@ -191,11 +189,13 @@ We first decided to briefly present how in general we deal with choosing the app
 
 #### The general schema of the type of model selection in the panel data
 
+<div style= "float:right">
+[source](https://l.facebook.com/l.php?u=https%3A%2F%2Frpubs.com%2FRitaTang%2Fplm%3Ffbclid%3DIwAR3osT_Yh_Xk54XA3u7sgbYoyjrglOP6yIwI6LDaYyBZOFfcXm5qj97nrKI&h=AT1jYC5erhkfPTeDDYzaXwPP13bFZ6mFpeLUayUzD9hsQfZg-vcc7s7rGMEc-6vCEO4Cs8BXwC4RzR5uODQmzX70Z8hBMDa3ndRapPOW-PX62bpJ0VJlVgO33wqw4tlA3ltn)
+</div>
+
 ```{r , echo=FALSE, out.width = '55%', fig.align='center'}
 knitr::include_graphics("pictures/model_selection_schema.png")
 ```
-
-SOURCE ???
 
 At the beginning, we check whether the random and fixed effects are significant based on Breusch-Pagan Lagrange Multiplier Test. If they both are not, we simply use Pooled Ordinary Least Squares (POLS) model. However, if those effects are significant, we then check using Huasmann test which model it is better to use: fixed effects model or random effects model.
 
@@ -1356,14 +1356,42 @@ Therefore, the results of our project illustrates very well how important it is 
 
 It is very interesting and we are honestly glad that we obtained something different in our reproducible project than in the original work.
 
+***
 
-<!-- ```{r} -->
-<!-- xfun::session_info(c( -->
-<!--     'knitr', 'rmarkdown', 'htmltools', -->
-<!--     'revealjs' -->
-<!-- ), dependencies = FALSE) -> system_version -->
+<details><summary>Show the software version <font color="red">(Click to show)</font></summary>
 
-<!-- save(list = "system_version", file = "system_version.RData") -->
-<!-- ``` -->
+```{r, echo=F}
+# Software version (uncomment if needed)
+
+# xfun::session_info(c(
+#     'rmarkdown',
+#     'aod',
+#     'bestNormalize',
+#     'data.table',
+#     'dplyr',
+#     'kableExtra',
+#     'knitr',
+#     'lmtest',
+#     'GGally',
+#     'ggplot2',
+#     'gplots',
+#     'plm',
+#     'stargazer',
+#     'tseries'
+#   ), dependencies = FALSE) -> software_version
+# 
+# save(list = "software_version", file = "Data/software_version.RData")
+```
+
+```{r, echo=F}
+load("Data/software_version.RData")
+```
+
+```{r, echo=F}
+software_version
+```
+
+</details>
+<br/>
 
 ***
