@@ -33,7 +33,6 @@ output:
 </style>
 
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
 library(knitr)
@@ -48,6 +47,7 @@ library(plm)
 ```
 
 ```{r, echo=F}
+# Datasets preparation ---
 data <- read.csv("Data/data_no_missings.csv", header = T)
 
 data$X <- NULL
@@ -74,24 +74,17 @@ df2 <- data %>%
   select(Country, Year, Homicide, Inequality, Education_years, 
          GDP_per_capita, Lower_secondary_completion_rate, 
          School_enrollment, Unemployment, Unsentenced, Police)
-
+# Data transformation
 df2$ln_Homicide <- log(df2$Homicide)
 df2$ln_GDP_per_capita <- log(df2$GDP_per_capita)
 df2$Unemployment_int <- cut(df2$Unemployment,
                            breaks = c(0,5.5,8.5,Inf),
                            labels = c("_low", "_medium","_high"))
 
-df3 <- data %>%
-  select(Country, Year, Homicide, Inequality, Education_years, 
-         GDP_per_capita, Lower_secondary_completion_rate, 
-         School_enrollment, Unemployment, Unsentenced, Police,
-         Urbanization_rate, RnD_expenditure)
-
-df3$ln_Homicide <- log(df3$Homicide)
-df3$ln_GDP_per_capita <- log(df3$GDP_per_capita)
-df3$Unemployment_int <- cut(df3$Unemployment,
-                            breaks = c(0,5.5,8.5,Inf),
-                            labels = c("_low", "_medium","_high"))
+df3 <- df2 %>%
+  mutate(RnD_expenditure = data$RnD_expenditure,
+         Urbanization_rate = data$Urbanization_rate)
+# Data transformation
 df3$ln_RnD_expenditure <- log(df3$RnD_expenditure)
 ```
 
@@ -188,7 +181,7 @@ Venezuela: an economic power after WWII, now it struggles with murders, kidnappi
 Aren't countries like the United States, Germany or Switzerland in danger of a similar situation?
 
 ```{r , echo=FALSE, out.width = '55%', fig.align='center'}
-plotmeans(Homicide ~ Year, main="Heterogeineity across years", data=data)
+plotmeans(Homicide ~ Year, main = "Heterogeineity across years", data = data, text.n.label = "n.")
 ```
 
 ## The dependent variable
@@ -219,14 +212,11 @@ ggplot(data) +
 
 ## Data
 
-<!-- **Common characteristics:** -->
-
 * Homicide rate as the dependent variable
 
 * 48 countries
 
 $$ $$
-<!-- **Differences:** -->
 
 <div class="column-left">
  **Original dataset**
@@ -338,7 +328,7 @@ Advantages:
 
 ## The schema of model selection
 
-```{r , echo=FALSE, out.width = '45%', fig.align='center'}
+```{r , echo=FALSE, out.width = '42%', fig.align='center'}
 knitr::include_graphics("pictures/model_selection_schema.png")
 ```
 
@@ -347,8 +337,8 @@ knitr::include_graphics("pictures/model_selection_schema.png")
 ```{r, echo=F}
 # fixed effects model
 fixed <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-             Lower_secondary_completion_rate + School_enrollment + 
-             Unemployment_int + Unsentenced + Police,
+               Lower_secondary_completion_rate + School_enrollment + 
+               Unemployment_int + Unsentenced + Police,
              data = df, 
              index=c("Country", "Year"),
              model="within")
@@ -379,23 +369,25 @@ $$ \Rightarrow \text{we choose} \mathbf{\text{ fixed effects model}} $$
 
 ## Fixed effects model {.smaller}
 
-```{r, echo=F}
+<center>
+```{r, echo=F, comment=NA}
 a <- summary(fixed)
 a$formula
 coeftest(fixed)
 ```
+</center>
 
 ```{r, echo=F}
 # Lower_secondary_completion_rate
 model1.1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-                School_enrollment + Unemployment_int + Unsentenced + Police,
+                  School_enrollment + Unemployment_int + Unsentenced + Police,
                 data = df, 
                 index=c("Country", "Year"),
                 model="within")
 
 ## Police
 model1.2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
-                 School_enrollment + Unemployment_int + Unsentenced,
+                  School_enrollment + Unemployment_int + Unsentenced,
                 data = df, 
                 index=c("Country", "Year"),
                 model="within")
@@ -410,32 +402,40 @@ model1.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
 
 ## General-to-specific procedure {.smaller}
 
-```{r, echo=F}
+<center>
+```{r, echo=F, comment=NA}
 coeftest(fixed)
 ```
+</center>
 
 ## General-to-specific procedure {.smaller}
 
-```{r, echo=F}
+<center>
+```{r, echo=F, comment=NA}
 coeftest(model1.1)
 ```
+</center>
 
 * <del> Lower_secondary_completion_rate
 
 ## General-to-specific procedure {.smaller}
 
-```{r, echo=F}
+<center>
+```{r, echo=F, comment=NA}
 coeftest(model1.2)
 ```
+</center>
 
 * <del> Lower_secondary_completion_rate
 * <del> Police
 
 ## General-to-specific procedure {.smaller}
 
-```{r, echo=F}
+<center>
+```{r, echo=F, comment=NA}
 coeftest(model1.3)
 ```
+</center>
 
 * <del> Lower_secondary_completion_rate
 * <del> Police
@@ -443,7 +443,11 @@ coeftest(model1.3)
 
 ## Model diagnostic
 
-```{r}
+```{r, eval=F}
+model_diagnostic(model1.3)
+```
+
+```{r, echo=F}
 model_diagnostic(model1.3, data = df) %>% 
   kbl(booktabs = T) %>%
   kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 22)
@@ -454,7 +458,7 @@ $$ \Rightarrow \text{appropriate robust estimator needed} $$
 
 ## Robust estimator
 
-```{r}
+```{r, comment=NA}
 coeftest(model1.3, 
          vcovHC(model1.3, method = "arellano", type="HC0", cluster = "time"))
 ```
@@ -475,10 +479,11 @@ model_diagnostic(model_Bachelor, data = df) %>%
   kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 22)
 ```
 
+
 ## {.smaller}
 
 <center>
-```{r, echo=F}
+```{r, echo=F, comment=NA}
 library(stargazer)
 
 model1.final <- coeftest(model1.3, vcovHC(model1.3, method = "arellano", type="HC0", cluster = "time"))
@@ -529,11 +534,13 @@ $$ \Rightarrow \text{we choose} \mathbf{\text{ fixed effects model}} $$
 
 ## Fixed effects model {.smaller}
 
-```{r, echo=F}
+<center>
+```{r, echo=F, comment=NA}
 a <- summary(fixed2)
 a$formula
 coeftest(fixed2)
 ```
+</center>
 
 ```{r, echo=F}
 model2.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
@@ -545,9 +552,11 @@ model2.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
 
 ## General-to-specific procedure {.smaller}
 
-```{r, echo=F}
+<center>
+```{r, echo=F, comment=NA}
 coeftest(model2.3)
 ```
+</center>
 
 * <del> Lower_secondary_completion_rate
 * <del> Police
@@ -555,7 +564,11 @@ coeftest(model2.3)
 
 ## Model diagnostic
 
-```{r}
+```{r, eval=F}
+model_diagnostic(model2.3)
+```
+
+```{r, echo=F}
 model_diagnostic(model2.3, data = df2) %>% 
   kbl(booktabs = T) %>%
   kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 22)
@@ -567,7 +580,7 @@ $$ \Rightarrow \text{appropriate robust estimator needed} $$
 ## {.smaller}
 
 <center>
-```{r, echo=F}
+```{r, echo=F, comment=NA}
 model2.final <- coeftest(model2.3, vcovHC(model2.3, method = "arellano", type="HC0", cluster = "time"))
 
 stargazer(model2.3, model2.final, type="text", colnames = TRUE, column.labels = c("","with robust estimator"), no.space = T)
@@ -615,11 +628,13 @@ $$ \Rightarrow \text{we choose} \mathbf{\text{ fixed effects model}} $$
 
 ## Fixed effects model {.smaller}
 
-```{r, echo=F}
+<center>
+```{r, echo=F, comment=NA}
 a <- summary(fixed3)
 a$formula
 coeftest(fixed3)
 ```
+</center>
 
 ```{r, echo=F}
 model3.4 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
@@ -631,9 +646,11 @@ model3.4 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
 
 ## General-to-specific procedure {.smaller}
 
-```{r, echo=F}
+<center>
+```{r, echo=F, comment=NA}
 coeftest(model3.4)
 ```
+</center>
 
 * <del> Lower_secondary_completion_rate
 * <del> Police
@@ -642,7 +659,11 @@ coeftest(model3.4)
 
 ## Model diagnostic
 
-```{r}
+```{r, eval=F}
+model_diagnostic(model3.4)
+```
+
+```{r, echo=F}
 model_diagnostic(model3.4, data = df3) %>% 
   kbl(booktabs = T) %>%
   kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 22)
@@ -654,7 +675,7 @@ $$ \Rightarrow \text{appropriate robust estimator needed} $$
 ## {.smaller}
 
 <center>
-```{r, echo=F}
+```{r, echo=F, comment=NA}
 model3.final <- coeftest(model3.4, vcovHC(model3.4, method = "arellano", type="HC0", cluster = "time"))
 
 stargazer(model3.4, model3.final, type="text", colnames = TRUE, column.labels = c("","with robust estimator"), no.space = T)
@@ -667,7 +688,7 @@ stargazer(model3.4, model3.final, type="text", colnames = TRUE, column.labels = 
 ## {.smaller}
 
 <center>
-```{r, echo=F}
+```{r, echo=F, comment=NA}
 stargazer(model_Bachelor.final, model1.final, model2.final, model3.final, 
           type="text", colnames = TRUE, 
           column.labels = c("Bachelor","Reproduction","Replication 1", "Replication 2"), no.space = T)
@@ -697,13 +718,16 @@ hyp %>%
 
 ## Conclusions
 
+* The model from the bachelor thesis differed significantly from the models we estimated.
+
 * Reproduction and replications gave very similar results to each other.
 
-* Some of the hypotheses in the Bachelor thesis were not verified by our reproducible research.
+* Adding *Urbanization_rate* in the replication part improved the model and **did** change values of some estimators, but not the general conclusion.
 
-* Adding Urbanization_rate improved the model and **did** change values of some estimators, but not the general conclusion.
+* Some of the hypotheses verified in the bachelor thesis were not verified by our reproducible research.
 
-* The project emphasizes the importance of correct data preparation (filling missing values).
+* The project strongly emphasizes the importance of proper data preparation and precise filling of missing values.
+
 
 # Thank you for your attention! 
 
