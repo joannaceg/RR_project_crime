@@ -1,4 +1,15 @@
 
+######################################################################################################
+
+# This file is a working file!
+
+# It includes, among others, the initial analysis, function definitions (later moved 
+# to the appropriate folder), general-to-specific procedures (with different approaches)
+# and model estimations.
+
+######################################################################################################
+
+
 # Setting working directory to source file location
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
@@ -367,23 +378,10 @@ resettest(ln_Homicide ~ Inequality + ln_GDP_per_capita + School_enrollment + Pol
           data	=	df)
 
 
-# test Jarque-Bera - test na normalność rozkładu błędów losowych ??
+# test Jarque-Bera
 library(tseries)
 
 jarque.bera.test(model1.3$residuals)
-
-library(stats)
-
-shapiro.test(model1.3$residuals)
-
-g = model1.3$residuals
-m<-mean(g)
-std<-sqrt(var(g))
-hist(g, density=20, breaks=20, prob=TRUE, 
-     xlab="x-variable",
-     main="normal curve over histogram")
-curve(dnorm(x, mean=m, sd=std), 
-      col="darkblue", lwd=2, add=TRUE, yaxt="n")
 
 
 # Testing for cross-sectional dependence/contemporaneous correlation:
@@ -438,49 +436,54 @@ model1.final <- coeftest(model1.3, vcovHC(model1.3, method = "arellano", type="H
 model_select <- function(fixed, random, pols, sig.level = 0.05) {
   
   library(dplyr)
-  library(knitr)
   library(plm)
   
-    
+  
   # Breusch-Pagan Lagrange Multiplier test for random effects
   random_effects <- plmtest(pols, type=c("bp"))
   
-  random_effects_con <- ifelse(random_effects$p.value < sig.level, "significant random effects", "insignificant random effects")
+  random_effects_con <- ifelse(random_effects$p.value < sig.level,
+                               "significant random effects", "insignificant random effects")
   
   # F test for individual fixed effects
   fixed_effects <- pFtest(fixed, pols)
   
-  fixed_effects_con <- ifelse(fixed_effects$p.value < sig.level, "significant fixed effects", "insignificant fixed effects")
+  fixed_effects_con <- ifelse(fixed_effects$p.value < sig.level,
+                              "significant fixed effects", "insignificant fixed effects")
   
   # Breusch-Pagan Lagrange Multiplier test for time-fixed effects
   time_fixed_effects <- plmtest(fixed, c("time"), type=("bp"))
   
-  time_fixed_effects_con <- ifelse(time_fixed_effects$p.value < sig.level, "time-fixed effects needed", "no time-fixed effects needed")
-
+  time_fixed_effects_con <- ifelse(time_fixed_effects$p.value < sig.level,
+                                   "time-fixed effects needed", "no time-fixed effects needed")
+  
   # Hausmann test
   hausmann <- phtest(fixed, random)
   
-  hausmann_con <- ifelse(hausmann$p.value < sig.level, "choose fixed effects model", "choose random effects model")
+  hausmann_con <- ifelse(hausmann$p.value < sig.level,
+                         "choose fixed effects model", "choose random effects model")
   
-    
+  
   # Data frame result
-  result <- data.frame(test = c("Breusch-Pagan LM test for random effects",
-                                "F test for individual fixed effects",
-                                "Breusch-Pagan LM test for time-fixed effects",
-                                "Hausmann test"
-                                ),
-                       p.value = c(random_effects$p.value, fixed_effects$p.value, 
-                                   time_fixed_effects$p.value, hausmann$p.value) %>% 
-                         round(4),
-                       conclusion = c(random_effects_con, fixed_effects_con,
-                                      time_fixed_effects_con, hausmann_con) ,
-                       row.names = NULL
-                       )
+  result <- data.frame(
+    test = c("Breusch-Pagan LM test for random effects",
+             "F test for individual fixed effects",
+             "Breusch-Pagan LM test for time-fixed effects",
+             "Hausmann test"
+    ),
+    p.value = c(random_effects$p.value, fixed_effects$p.value, 
+                time_fixed_effects$p.value, hausmann$p.value) %>% 
+      round(4),
+    conclusion = c(random_effects_con, fixed_effects_con,
+                   time_fixed_effects_con, hausmann_con) ,
+    row.names = NULL
+  )
   
   result$p.value <- ifelse(result$p.value == 0, "< 0.0001" , result$p.value)
   
   
-  return(result %>% knitr::kable(align = "c"))
+  return(result)
+
 }
 
 source("functions/model_select.R")
@@ -821,9 +824,9 @@ ggplot(df3) +
 # I would log-transform it (all values of this variable are positive)
 df3$ln_RnD_expenditure <- log(df3$RnD_expenditure)
 
-# OR maybe divide it into intervals ?? How did you do it in MA thesis?
-df3$lRnD_expenditure_int <- cut(df3$RnD_expenditure,
-                                breaks = c(0,0.5,1,2,5)) # partly based on quantiles
+# OR maybe divide it into intervals
+df3$RnD_expenditure_int <- cut(df3$RnD_expenditure,
+                               breaks = c(0,0.5,1,2,5)) # partly based on quantiles
 # I also tried other intervals, but still this variable was insignificant in the final model
 
 ### Model --------------------------------------------
