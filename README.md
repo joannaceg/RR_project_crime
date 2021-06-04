@@ -44,7 +44,7 @@ Independent variables were carefully selected on the basis of the literature on 
 
 The two added independent variables, in turn, were:
 * Research and development expenditure,
-* * Urbianization rate.
+* Urbianization rate.
 
 
 ## Research hypotheses
