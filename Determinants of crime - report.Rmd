@@ -49,8 +49,9 @@ colnames(data) <- c("Country", "Year", "Homicide", "Inequality", "Education_year
 
 # Introduction
 
-The aim of this project is to reproduce the results of a bachelor thesis study prepared in 2019 by Joanna Ceglinska (one of the authors) and extend the research by using different software, bigger dataset and by implementing more advanced methods of data analysis and visualization. 
-The topic of the original study was investigating the determinants of crime using panel data of 48 countries for the years 2003-2015. The dependent variable was the homicide rate and independent variables included the Gini index, GDP per capita, unemployment rate, variables responsible for measuring the education level in a country and a regressor which presents the effectiveness of judicial system (Unsentenced detainees as a proportion of overall prison population).
+The aim of this project is to reproduce and replicate the results of a bachelor thesis study prepared in 2019 by Joanna Ceglinska (one of the authors) and extend the research by using different software, extended dataset, and by implementing more advanced methods of data analysis and visualization.
+
+The topic of the original study was investigating the determinants of crime using panel data of 48 countries for the years 2003-2015. The dependent variable was the homicide rate and independent variables included the Gini index, GDP per capita, unemployment rate, variables responsible for measuring the education level in a country, and a regressor which presents the effectiveness of the judicial system (Unsentenced detainees as a proportion of overall prison population).
 
 ---
 
@@ -58,116 +59,137 @@ The topic of the original study was investigating the determinants of crime usin
 
 ## Main implemented modifications
 
-We have decided to not only replicate the previous research, but also extend it and perform the analysis using different software. Previously, the main tools in the study were Microsoft Excel (for the data tranformations and filling the missing observations) and STATA for statistical and econometric research. Now, we have used R and Python for the regressions and data visualisation.
+We have decided to not only reproduce the previous research, but also to extend it and to perform the analysis using different software. Previously, the main tools in the study were Microsoft Excel (for the data transformations and filling the missing observations) and STATA for statistical and econometric research. Now, we have used `R` and `Python` for those elements and additionally for data visualization.
 
-We have also implemented a new method of missing data imputation - previous work included manual imputation of all missing values, whereas now we use an automated function that have performed this task. The full description of the algorithm is presented in the subsequent section of the report. 
+We have also implemented a new method of filling in missing data - previous work included manual imputation of all missing values, whereas now we use an automated function that has performed this task. The full description of the algorithm is presented in the subsequent section of the report. 
 
-In our research, we extended the dataset by two years and two variables. The original dataset included the years 2003-2015 and we appended the years 2016 and 2017 to the database. Additional variables were the research and development expenditures and the urbanization rate. 
+In our research, we extended the dataset by two years and two variables. The original dataset included the years 2003-2015 and we appended the years 2016 and 2017 to the database. Added variables are the research and development expenditures and the urbanization rate.
+
+Our idea for this analysis is first to prepare a reproduction, and then two replications. The reproduction model is based on those variables and years that were considered in the bachelor thesis. The first replication model (`Replication 1st` section) extends our analysis to include data from the next two years, but maintaining the same set of independent variables as for reproduction. Finally, the second replication model (`Replication 2nd` section) extends the output model not only with data from the next two years, but also with the two new variables mentioned above. In the end, all models are compared with each other and with the model obtained in the bachelor thesis. We also check the robustness of the conclusions resulting from these models.
 
 
 ## The dependent variable
 
-The variable responsible for the represenation of crime is the **homicide rate**, which is the number of deaths caused by another person's violence (per 100,000 population). It is worth noting, that a homicide is not equivalent to murder - it does not have to result from the intention of causing harm - it can also be a consequence of an accident or reckless acts.
+The variable responsible for the representation of crime is the **homicide rate**, which is the number of deaths caused by another person's violence (per 100,000 population). It is worth noting, that homicide is not equivalent to murder - it does not have to result from the intention of causing harm - it can also be a consequence of an accident or reckless acts.
 
-This variable was chosen because is a serious violent crime, that causes a significant harm to other people. It is one of the few crimes that is carefully tracked and is not neglected. The investigation associated with this type of crime is usually careful and meticulous. What is more, using a variable associated with a bribe or a financial fraud would be more complicated due to the differences in definitions of those crimes and law regulations among countries.
+This variable was chosen because is a serious violent crime, that causes significant harm to other people. It is one of the few crimes that is carefully tracked and is not neglected. The investigation associated with this type of crime is usually careful and meticulous. What is more, using a variable associated with a bribe or a financial fraud would be more complicated due to the differences in definitions of those crimes and law regulations among countries.
 
-The distribution of this variable is presented in the plot below. The distribution is highly asymmetrical and skewed towards the left side of the plot - the majority of observations are concentrated around zero. Therefore, we have decided to use a logarithmic transformation of homicide rate in the research. 
-
+The distribution of this variable is presented in the plot below. The distribution is highly asymmetrical and right-skewed - the majority of observations are concentrated around zero. Therefore, we have decided to use a logarithmic transformation of the homicide rate in the research, similarly as it was done in the original work. 
 
 ```{r, echo=F, fig.align='center', out.width = '80%'}
 ggplot(data) +
   geom_histogram(aes(Homicide), fill = "Steelblue", color = "black")
 ```
 
-The next plot presents how the heterogeneity of the homicide rate has been changing in the presented years 2003-2017. It can be observed, that the heterogeneity decreases with time (from 8.5 to around 6), which means that countries tend to differ less in the homicide rate across the world.
+The next plot presents how the heterogeneity of the homicide rate has been changing in the years 2003-2017. It can be observed, that the heterogeneity generally tends to decrease.
 
-
-```{r , echo=F, fig.align='center', out.width = '120%'}
-plotmeans(Homicide ~ Year, main="Heterogeineity across years", data=data)
+```{r , echo=F, fig.align='center', out.width='140%'}
+plotmeans(Homicide ~ Year, main = "Heterogeineity across years", data = data, text.n.label = "n.")
 ```
+
 
 ## The dataset description
 
-The variables used in the research are presented in the table below. In the second column we show the source of the data, and the last column presents a Worlbank code to quickly find those variables in the database. We choice of determinants was based on the literature review.
+The variables used in the research are presented in the table below together with their corresponding names used in the analysis. In the last column, we put the source of the data. In particular, in the case of Worldbank, it also contains a code by which you can easily find these variables. The choice of determinants was obviously based on the literature review.
 
-Researchers believe, that crime is dependent on the efficiency of the jurisdictional system, the income inequality in a country, an education level, unemployment and the economic condition of a country. Additional variables refer to the society's approach to innovation and education (Pesearch and development expenditure variable) and the urbanization, because more crimes tend to happen in cities than in the rural areas (Percentage of urban population). 
+In a nutshell, researchers state that crime is dependent on the efficiency of the jurisdictional system, the income inequality in a country, the education level, unemployment, and the economic condition of a country. In turn, added in this project variables refer to the society's approach to innovation and education, and to urbanization. Based on the literature, it is particularly important to consider the second variable as more crimes tend to happen in cities than in rural areas.
 
-Table 1. The variables used in the research, their source and additional information if available).
-
-```{r, echo = FALSE}
+```{r, echo = FALSE, out.width = '80%'}
 Variable <- c("Homicide rate (per 100,000 population)",
-"Unsentenced detainees as a proportion of overall prison population",
-"Police personnel (per 100,000 population)",
-"Gini index - income inequality measure",
-"Lower secondary completion rate, total (% of relevant age group)",
-"School enrollment,  tertiary (% gross)",
-"Unemployment, total (% of total labor force) (national estimate)",
-"Compulsory education,  duration (years)",
-"GDP per capita (constant 2010 US$)",
-"Research and development expenditure (% of GDP)",
-"Urban population (% of total population)")
+              "Unsentenced detainees as a proportion of overall prison population",
+              "Police personnel (per 100,000 population)",
+              "Gini index - income inequality measure",
+              "Lower secondary completion rate, total (% of relevant age group)",
+              "School enrollment,  tertiary (% gross)",
+              "Unemployment, total (% of total labor force) (national estimate)",
+              "Compulsory education,  duration (years)",
+              "GDP per capita (constant 2010 US$)",
+              "Research and development expenditure (% of GDP)",
+              "Urban population (% of total population)")
 
-Source <- c("United Nations Office on Drugs and Crime (UNODC)", 
-            "United Nations Office on Drugs and Crime (UNODC)", 
-            "United Nations Office on Drugs and Crime (UNODC)",
-            "Standardized World Income Inequality Database (SWIID)",
-            "Worldbank",
-            "Worldbank",
-            "Worldbank",
-            "Worldbank",
-            "Worldbank",
-            "Worldbank",
-            "Worldbank"
+Source <- c("UNODC *", 
+            "UNODC *",  
+            "UNODC *", 
+            "SWIID †",
+            "Worldbank (SE.SEC.CMPT.LO.ZS)",
+            "Worldbank (SE.TER.ENRR)",
+            "Worldbank (SL.UEM.TOTL.NE.ZS)",
+            "Worldbank (SE.COM.DURS)",
+            "Worldbank (NY.GDP.PCAP.KD)",
+            "Worldbank (GB.XPD.RSDV.GD.ZS)",
+            "Worldbank (SP.URB.TOTL.IN.ZS)"
             )
 
-Info <- c("", 
-          "", 
-          "",
-          "",
-          "SE.SEC.CMPT.LO.ZS",
-          "SE.TER.ENRR",
-          "SL.UEM.TOTL.NE.ZS",
-          "SE.COM.DURS",
-          "NY.GDP.PCAP.KD",
-          "GB.XPD.RSDV.GD.ZS",
-          "SP.URB.TOTL.IN.ZS"
-          )
+Variable_name <- c("Homicide","Unsentenced", "Police", "Inequality", "Lower_secondary_completion_rate",
+                   "School_enrollment", "Unemployment", "Education_years", "GDP_per_capita",
+                   "RnD_expenditure", "Urbanization_rate")
 
-df_desc <- data.frame(Variable, Source, Info)
+df_desc <- data.frame(Variable, Variable_name, Source)
 
 df_desc %>%
-  kbl() %>%
-  kable_styling()
+  kbl(caption = "The variables used in the research and their source") %>%
+  kable_material_dark(full_width = T, bootstrap_options = c("hover"), font_size = 12) %>%
+  footnote(
+    general = c(". * UNODC = United Nations Office on Drugs and Crime",
+                ". † SWIID = Standardized World Income Inequality Database"))
 
 ```
 
-The original dataset included 48 countries and years 2003-2015, whereas the extended dataset also includes years 2016 and 2017 (for the same set of countries). Adding two years and two variables resulted in obtaining 96 observations more than in the base dataset. The summary of the differences can be found in the Table 2. 
+The original dataset included 48 countries and years 2003-2015. Our extended dataset additionally includes years 2016 and 2017 for all those countries. Adding two years resulted thus in 96 observations more than in the original dataset. The summary of the differences can be found in the table below. 
 
-Table 2. The summary of the differences between the datasets
-
-```{r, echo = FALSE}
-Original <- c("Years  2003-2015",
+```{r, echo = FALSE, fig.align='center'}
+Original <- c("Years 2003-2015",
               "8 independent variables",
               "624 observations in total")
 
 Extended <- c("Years 2003-2017", 
-            "Two additional variables (10 in total): 
-              <br> 1. Research and development expenditure 
-              <br> 2. Percentage of urban population in total",
-            "720 observations in total")
+              "2 additional variables (10 in total): 
+                <br> - Research and development expenditure 
+                <br> - Urbanization rate",
+              "720 observations in total")
 
 df_differences <- data.frame(Original, Extended)
 
 df_differences %>%
-  kable("html", escape = FALSE) %>%
-  kable_styling() 
-
+  kable("html", escape = FALSE, caption = "The summary of the differences between the datasets") %>%
+  kable_styling(full_width = F) 
 ```
 
 ## Filling the missing values
 
+First of all, it is worth mentioning that filling the missing values in the database for the bachelor thesis was done manually, without any specific knowledge. The author mainly relied on visual trends, which made the results vulnerable to significant errors in later estimates.
+
+In our project, we decided to implement our own function based on a moving average algorithm with two-period window that fills in the blanks automatically based on existing values. Thanks to this, the results should be more consistent and the estimators less biased. What is more, this fast and reusable algorithm can be easily used in possible later replications.
+
+The definition of this function can be viewed below.
+
+<details><summary>Show the definition of the function <font color="red">(Click to show)</font></summary>
+
+```{python, eval=F}
+import pandas as pd
+
+def interpolate_ma(df, window):
+    for column in df:
+        nans = list(df[column].isna())
+        values = list(df[column])
+        if sum(nans) != 0:
+            for i, val in enumerate(nans):
+                if i == 0 and val:
+                    values[i] = values[min([i for i, x in enumerate(nans) if not x])]
+                elif i > 0 and i < window and val:
+                    values[i] = np.mean(values[0:i])
+                elif i >= window and val:
+                    values[i] = np.mean(values[i-window:i])
+
+        df[column] = values
+                
+    return df
+```
+</details>
+<br/>
 
 
+---
 
 ## Research hypotheses
 
@@ -180,10 +202,12 @@ The literature review prompts us to formulate hypotheses as to the influence of 
 * Poor labor market conditions in the country have a positive effect on the homicide rate.
 * The effectiveness of the justice system has a positive effect on the homicide rate.
 
+At the end of our analysis, we will check whether our reproduction and replication models confirm these hypotheses. Next, we will compare it with the results of the model obtained in the bachelor thesis.
+
 
 # Reproduction
 
-Let us now move to the reproduction modeling part of our project. Based on the same data as in the bachelor's thesis (the one before dealing with the missing values), we check whether we get the same results. For this, However, this time we use for this analysis different software, and therefore slightly different functions. In addition, as already mentioned before, we use a more accurate method of filling in the missing data.
+Let us now move to the reproduction modeling part of our project. Based on the same data as in the bachelor thesis (the one before dealing with the missing values), we check whether we get the same results. However, this time we use for this analysis different software, and therefore slightly different functions. In addition, as already mentioned before, we use a more accurate method of filling in the missing data.
 
 We first decided to briefly present how in general we deal with choosing the appropriate type of model in the case of panel data.
 
@@ -199,9 +223,9 @@ knitr::include_graphics("pictures/model_selection_schema.png")
 
 At the beginning, we check whether the random and fixed effects are significant based on Breusch-Pagan Lagrange Multiplier Test. If they both are not, we simply use Pooled Ordinary Least Squares (POLS) model. However, if those effects are significant, we then check using Huasmann test which model it is better to use: fixed effects model or random effects model.
 
-In our analysis we also decided to check additionally whether time effects are needed in the model (again using the appropriate Breusch-Pagan Lagrange Multiplier Test). Also in general, the significance level, naturally can be chosen different than 5% as on the graph. Setting this level will be possible, among others, in the functions that are an automated part of our analysis.
+In our analysis, we also decided to check additionally whether time effects are needed in the model (again using the appropriate Breusch-Pagan Lagrange Multiplier Test). Also in general, the significance level naturally can be chosen different than 5% as on the graph. Setting this level will be possible, among others, in the functions that are an automated part of our analysis.
 
-## Data transormation
+## Data transformation
 
 Having filled in the missing values in the data, for reproduction purposes, we limit the data to the variables that were considered in the bachelor's thesis (i.e. without *RnD_expenditure* and *Urbanization_rate*) for the years up to 2015.
 
@@ -216,7 +240,7 @@ Let us perform some data transformation now.
 
 ### Homicide
 
-As already shown before, *Homecide* variable seems to be right-skewed. Therefore we should consider its log-transformation. Since there is  `r sum(df$Homicide <= 0)` observations for which *Homicide* is non-positive, we do not need to add any number to it inside the logarithm function.
+As already shown before, *Homicide* variable seems to be right-skewed. Therefore we should consider its log-transformation. Since there is  `r sum(df$Homicide <= 0)` observations for which *Homicide* is non-positive, we do not need to add any number to it inside the logarithm function.
 
 ### {.tabset .tabset-fade .tabset-pills}
 
@@ -238,7 +262,7 @@ ggplot(df) +
 
 Having applied Box-Cox transformation for this variable, we got the result that the optimal $\lambda$ = `r bestNormalize::boxcox(df$Homicide)$lambda %>% round(4)`.
 
-It is not that much close to zero, but since after this transformation the distribution is more symmetric and and since it was performed in the original analysis, we decided to log-transform it.
+It is not that close to zero, but since after this transformation the distribution is more symmetric and since it was performed in the original analysis, we decided to log-transform it.
 
 Therefore, we create the logarithm of the dependent variable:
 
@@ -276,7 +300,7 @@ df$ln_GDP_per_capita <- log(df$GDP_per_capita)
 
 ### Unemployment
 
-In the case of *Unemployment* variable, we decided to transform it exactly in the same way it was done in the bachelor thesis, i.e. to divide its values into 3 groups referred to `low`, `medium` and `high` rate of unemployment.
+In the case of *Unemployment* variable, we decided to transform it exactly in the same way it was done in the bachelor thesis, i.e. to divide its values into 3 groups referred to as `low`, `medium`, and `high` rate of unemployment.
 
 ```{r}
 df$Unemployment_int <- cut(df$Unemployment,
@@ -317,11 +341,11 @@ pols <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
             model = "pooling")
 ```
 
-## Model selecion
+## Model selection
 
-In order to make a faster, almost automatic decision on which type of model should be used, we have created a `model_select()` function. It returns the table with the results of the statistical tests that are necessary in the model choice. Those test were already mentioned, but they are also mentioned in the definition of this function, which can be viewed below.
+In order to make a faster, almost automatic decision on which type of model should be used, we have created a `model_select()` function. It returns the table with the results of the statistical tests that are necessary in the model choice. Those tests were already mentioned, but they are also mentioned in the definition of this function, which can be viewed below.
 
-This function takes 4 arguments: fixed effects model object, random effects model object, POLS model object, and significance level (`sig.level`) with default value set to 5%.
+This function takes 4 arguments: fixed effects model object, random effects model object, POLS model object, and significance level (`sig.level`) with the default value set to 5%.
 
 ```{r}
 source("functions/model_select.R")
@@ -404,7 +428,7 @@ In this case, based on internally performed statistical tests, we can conclude t
 
 Due to the results obtained above, we are focusing on the fixed effects model. Since it contains insignificant variables, we perform a *from-general-to-specific* procedure to get rid of them from the model.
 
-Although we could have automated this part as well, we found it an inappropriate approach as deleting sequentially variables is rather case-specific and one should have a broader perspective than just automated approach concentrated mainly on *p-values*. Therefore, we present below the steps of eliminating insignificant variables.
+Although we could have automated this part as well, we found it an inappropriate approach as deleting sequentially variables is rather case-specific and one should have a broader perspective than just an automated approach concentrated mainly on *p-values*. Therefore, we present below the steps of eliminating insignificant variables.
 
 ### Base model
 
@@ -430,7 +454,7 @@ model1.1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
                 model="within")
 ```
 
-Next, we check the significance of omitting this variable using Wald test. Namely, we test whether the coefficient of the *Lower_secondary_completion_rate* variable is equal to zero.
+Next, we check the significance of omitting this variable using the Wald test. Namely, we test whether the coefficient of the *Lower_secondary_completion_rate* variable is equal to zero.
 
 ```{r, echo=F}
 h <- rbind(c(0,0,0,1,0,0,0,0,0))
@@ -461,7 +485,7 @@ model1.2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
                 model="within")
 ```
 
-Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *Police* and *Lower_secondary_completion_rate* are both equal to zero.
+Next, we check the significance of omitting these variables using the Wald test. Namely, we test whether the coefficients of *Police* and *Lower_secondary_completion_rate* are both equal to zero.
 
 ```{r, echo=F}
 h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1)) 
@@ -492,7 +516,7 @@ model1.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
                 model="within")
 ```
 
-Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *Inequality*, *Police* and *Lower_secondary_completion_rate* are all equal to zero.
+Next, we check the significance of omitting these variables using the Wald test. Namely, we test whether the coefficients of *Inequality*, *Police* and *Lower_secondary_completion_rate* are all equal to zero.
 
 ```{r, echo=F}
 h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1),c(1,0,0,0,0,0,0,0,0))
@@ -608,9 +632,9 @@ model_diagnostic(model1.3) %>%
   kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
 ```
 
-This means that residuals of our model are not normally distributed, and at the same time we have to deal with all the problems: cross-sectional dependence, serial correlation and heteroskedasticity.
+This means that residuals of our model are not normally distributed, and at the same time, we have to deal with all the problems: cross-sectional dependence, serial correlation and heteroskedasticity.
 
-Let us start with the issue of the residuals distribution. We plot it below, together with the normal distribution with the parameters based on residuals values.
+Let us start with the issue of the distribution of the residuals. We plot it below, together with the normal distribution with the parameters based on residuals values.
 
 ```{r, echo=F, fig.align='center', out.width = '80%'}
 hist(model1.3$residuals,
@@ -625,7 +649,7 @@ curve(dnorm(x,
 
 The graph shows that the distribution of residuals is rather close to the normal distribution. So where does this discrepancy come from?
 
-Note that the Jarque-Bera test often rejects the null hypothesis for large samples (like here) where it detects even a small deviation in the residuals distribution from the normal distribution. Moreover, the lack of normality in the distribution of residuals is not very significant for large samples.
+Note that the Jarque-Bera test often rejects the null hypothesis for large samples (like here) where it detects even a small deviation in the distribution of the residuals from the normal distribution. Moreover, the lack of normality in the distribution of residuals is not very significant for large samples.
 
 What about the other three problems? We need to use the appropriate robust estimator.
 
@@ -642,13 +666,13 @@ coeftest(model1.3,
          vcovHC(model1.3, method = "arellano", type="HC0", cluster = "time"))
 ```
 
-The obtained results are displayed in the next section. Worth to mention is that those results obviously do not differ among the values of estimators, but only among their significance level. In our case all of the chosen variable were still significant. 
+The obtained results are displayed in the next section. Worth mentioning is that those results obviously do not differ among the values of estimators, but only among their significance levels. In our case, all of the chosen variables were still significant.
 
 ---
 
 ## BA model
 
-For the sake of comparison, we next estimated the model that has been recognized as the best in the BA thesis to which we are referring. For this purpose, we took exactly the same independent variables that were present and significant in that BA model. Next we estimated it as below.
+For the sake of comparison, we next estimated the model that has been recognized as the best in the BA thesis to which we are referring. For this purpose, we took exactly the same independent variables that were present and significant in that BA model. Next, we estimated it as below.
 
 ```{r}
 model_BA <- plm(ln_Homicide ~ Inequality + ln_GDP_per_capita + School_enrollment + Police + Unsentenced,
@@ -673,7 +697,7 @@ model_diagnostic(model_BA) %>%
   kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
 ```
 
-We encountered the same problems inside the diagnostic of BA model as earlier. Interestingly, the results of these tests, apart from the Jarque-Bere test result, coincide with the results of the BA thesis.
+We encountered the same problems inside the diagnostic of the BA model as earlier. Interestingly, the results of these tests, apart from the Jarque-Bere test result, coincide with the results of the BA thesis.
 
 The graph below indicates that again we should not worry about the Jarque-Bera test result. For the other three issues, we used the appropriate estimator as earlier.
 
@@ -704,15 +728,15 @@ stargazer(model_BA.final, model1.final,
 ```
 </center>
 
-As we can see, our reproduction model differs from the one from the bachelor thesis. First of all, we have different variables taken into account as significant one. Secondly, two variables in the BA model are not significant. On the other hand, we may observe some similarities in the parameters values and their signs (see *Unsentenced* or *School_enrollment* variables).
+As we can see, our reproduction model differs from the one from the bachelor thesis. First of all, we have different variables taken into account as significant ones. Secondly, the two variables in the BA model are not significant. On the other hand, we may observe some similarities in the parameters values and their signs (see *Unsentenced* or *School_enrollment* variables).
 
 # Replication 1st 
 
-In this part we perform the first of two replication analysis of our project. The assumptions about the software used and the way of filling in the missing values remain the same as in the case of reproduction part. This time, however, we estimate the model, but including next 2 years of observations for each country, which gives us jointly 96 new observations added to the dataset. 
+In this part, we perform the first of two replication analyses of our project. The assumptions about the software used and the way of filling in the missing values remain the same as in the case of the reproduction part. This time, however, we estimate the model, but including the next 2 years of observations for each country, which gives us jointly 96 new observations added to the dataset. 
 
 The main goal of this replication is naturally to check the robustness of the results when considering the extended database.
 
-## Data transormation
+## Data transformation
 
 In the first replication part, as described above we limit the data to the variables that were considered in the bachelor's thesis (i.e. without *RnD_expenditure* and *Urbanization_rate*), but this time for all the years in the database (including 2016 and 2017).
 
@@ -726,7 +750,7 @@ In the next step, we perform data transformations again. Formally, including two
 
 ### Homicide
 
-*Homecide* variable still seems to be right-skewed.
+*Homicide* variable still seems to be right-skewed.
 
 ### {.tabset .tabset-fade .tabset-pills}
 
@@ -794,7 +818,7 @@ df2$Unemployment_int <- cut(df2$Unemployment,
 
 ## Model selection
 
-Similarly as before, in this part, we estimate fixed effects model, random effects model and POLS model, but this time with the usage of new, extended dataset.
+Similarly as before, in this part, we estimate fixed effects model, random effects model and POLS model, but this time with the usage of the new, extended dataset.
 
 ```{r}
 # fixed effects model
@@ -864,7 +888,7 @@ model2.1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
                 model="within")
 ```
 
-Next, we check the significance of omitting this variable using Wald test. Namely, we test whether the coefficient of the *Lower_secondary_completion_rate* variable is equal to zero.
+Next, we check the significance of omitting this variable using the Wald test. Namely, we test whether the coefficient of the *Lower_secondary_completion_rate* variable is equal to zero.
 
 ```{r, echo=F}
 h <- rbind(c(0,0,0,1,0,0,0,0,0))
@@ -895,7 +919,7 @@ model2.2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
                 model="within")
 ```
 
-Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *Police* and *Lower_secondary_completion_rate* are both equal to zero.
+Next, we check the significance of omitting these variables using the Wald test. Namely, we test whether the coefficients of *Police* and *Lower_secondary_completion_rate* are both equal to zero.
 
 ```{r, echo=F}
 h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1))
@@ -926,7 +950,7 @@ model2.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita +
                 model="within")
 ```
 
-Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *Inequality*, *Police* and *Lower_secondary_completion_rate* are all equal to zero.
+Next, we check the significance of omitting these variables using the Wald test. Namely, we test whether the coefficients of *Inequality*, *Police* and *Lower_secondary_completion_rate* are all equal to zero.
 
 ```{r, echo=F}
 h <- rbind(c(0,0,0,1,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1),c(1,0,0,0,0,0,0,0,0))
@@ -967,9 +991,9 @@ model_diagnostic(model2.3) %>%
   kable_material_dark(full_width = F, bootstrap_options = c("hover"), font_size = 14)
 ```
 
-This means that residuals of our model are not normally distributed, and at the same time we have to deal with all the problems: cross-sectional dependence, serial correlation and heteroskedasticity - exactly the same as before.
+This means that residuals of our model are not normally distributed, and at the same time, we have to deal with all the problems: cross-sectional dependence, serial correlation and heteroskedasticity - exactly the same as before.
 
-Also, as before, it turns out that we do not need to worry a lot about the result indicating that there is no normal distribution of residuals. Despite rejecting the null hypothesis in the Jarque-Bera test, the residuals are distributed close to normal distribution, which can be observed in the graph below.
+Also, as before, it turns out that we do not need to worry a lot about the result indicating that there is no normal distribution of residuals. Despite rejecting the null hypothesis in the Jarque-Bera test, the residuals are distributed close to the normal distribution, which can be observed in the graph below.
 
 ```{r, echo=F, fig.align='center', out.width = '80%'}
 hist(model2.3$residuals,
@@ -994,11 +1018,11 @@ model2.final <- coeftest(model2.3, vcovHC(model2.3, method = "arellano", type="H
 
 # Replication 2nd
 
-In this part we perform the second out of two replication analysis of our project. All previous assumptions about the software and the method of data filling in remain unchanged. This replication analysis differs from the previous one in that it not only takes into account the two new years (2016 and 2017), but we also add two new variables to the entire analysis that, based on the literature, should have significant effect on our explanatory variable. Those variables are *RnD_expenditure* and *Urbanization_rate* defined as in the Table 1.
+In this part, we perform the second out of two replication analyses of our project. All previous assumptions about the software and the method of data filling in remain unchanged. This replication analysis differs from the previous one in that it not only takes into account the two new years (2016 and 2017), but we also add two new variables to the entire analysis that, based on the literature, should have significant effect on our explanatory variable. Those variables are *RnD_expenditure* and *Urbanization_rate* defined as in the first table.
 
 The main goal of this replication is naturally to check the robustness of the results when considering the extended database and new assumptions about independent variables.
 
-## Data transormation
+## Data transformation
 
 In this part of the project, we take into account the observations from all years and all variables from our data. In order to maintain the current transformations of variables, we simply add *RnD_expenditure* and *Urbanization_rate* to the dataset from the previous section.
 
@@ -1008,7 +1032,7 @@ df3 <- df2 %>%
          Urbanization_rate = data$Urbanization_rate)
 ```
 
-Since we have already performed potention transformations for all variables except *RnD_expenditure* and *Urbanization_rate*, let us take a look at the distributions of these new variables.
+Since we have already performed potential transformations for all variables except *RnD_expenditure* and *Urbanization_rate*, let us take a look at the distributions of these new variables.
 
 ### Urbanization_rate
 
@@ -1045,7 +1069,7 @@ ggplot(df3) +
 
 #### Intervals
 
-This split is partly based on quantiles of this variable.
+This split is partly based on the quantiles of this variable.
 
 ```{r}
 df3$RnD_expenditure_int <- cut(df3$RnD_expenditure,
@@ -1066,7 +1090,7 @@ Having applied Box-Cox transformation for this variable, we got the result that 
 
 In this part, we estimate fixed effects model, random effects model and POLS model. This time we obviously use the extended dataset with all years and two new variables.
 
-As one can notice, we decided to show the case in which we have chosen log-transformed *RnD_expenditure* variable, not the interval one. Actually, we tested both of these approaches and both boiled down to the same result, which is presented shown in the *General-to-specific procedure* section.
+As one can notice, we decided to show the case in which we have chosen the log-transformed *RnD_expenditure* variable, not the interval one. Actually, we tested both of these approaches and both boiled down to the same result, which is presented shown in the *General-to-specific procedure* section.
 
 ```{r}
 # fixed effects model
@@ -1139,7 +1163,7 @@ model3.1 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
               model = "within")
 ```
 
-Next, we check the significance of omitting this variable using Wald test. Namely, we test whether the coefficient of the *Lower_secondary_completion_rate* variable is equal to zero.
+Next, we check the significance of omitting this variable using the Wald test. Namely, we test whether the coefficient of the *Lower_secondary_completion_rate* variable is equal to zero.
 
 ```{r, echo=F}
 h <- rbind(c(0,0,0,1,0,0,0,0,0,0,0))
@@ -1170,7 +1194,7 @@ model3.2 <- plm(ln_Homicide ~ Inequality + Education_years + ln_GDP_per_capita +
               model = "within")
 ```
 
-Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *Police* and *Lower_secondary_completion_rate* are both equal to zero.
+Next, we check the significance of omitting these variables using the Wald test. Namely, we test whether the coefficients of *Police* and *Lower_secondary_completion_rate* are both equal to zero.
 
 ```{r, echo=F}
 h <- rbind(c(0,0,0,1,0,0,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1,0,0))
@@ -1201,7 +1225,7 @@ model3.3 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita + School_enrol
               model = "within")
 ```
 
-Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *Inequality*, *Police* and *Lower_secondary_completion_rate* are all equal to zero.
+Next, we check the significance of omitting these variables using the Wald test. Namely, we test whether the coefficients of *Inequality*, *Police* and *Lower_secondary_completion_rate* are all equal to zero.
 
 ```{r, echo=F}
 h <- rbind(c(0,0,0,1,0,0,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1,0,0),c(1,0,0,0,0,0,0,0,0,0,0))
@@ -1232,7 +1256,7 @@ model3.4 <- plm(ln_Homicide ~ Education_years + ln_GDP_per_capita + School_enrol
               model = "within")
 ```
 
-Next, we check the significance of omitting these variables using Wald test. Namely, we test whether the coefficients of *ln_RnD_expenditure*, *Inequality*, *Police*, and *Lower_secondary_completion_rate* are all equal to zero.
+Next, we check the significance of omitting these variables using the Wald test. Namely, we test whether the coefficients of *ln_RnD_expenditure*, *Inequality*, *Police*, and *Lower_secondary_completion_rate* are all equal to zero.
 
 ```{r, echo=F}
 h <- rbind(c(0,0,0,1,0,0,0,0,0,0,0),c(0,0,0,0,0,0,0,0,1,0,0),c(1,0,0,0,0,0,0,0,0,0,0),c(0,0,0,0,0,0,0,0,0,0,1))
@@ -1293,7 +1317,7 @@ curve(dnorm(x,
       col="steelblue", lwd = 2, add = T, yaxt = "n")
 ```
 
-In the case of the other three model diagnostic problems, we used the mentioned earlier appropriate robust estimator that help us to deal with all of them. 
+In the case of the other three model diagnostic problems, we used the mentioned earlier appropriate robust estimator that helps us to deal with all of them. 
 
 <center>
 ```{r, echo=F, results = 'asis'}
@@ -1324,14 +1348,14 @@ stargazer(model_BA.final, model1.final, model2.final, model3.final,
 
 First of all, it is worth mentioning once again that the model from the bachelor thesis differed significantly from the others. Moreover, from the perspective of our analysis, it contains insignificant variables.
 
-The remaining models, on the other hand, are generally very similar to each other and indicated the reproducibility of the results. Naturally, they slightly differed on the individual levels, in particular, after adding a significant variable, some coefficients changed due to the correlation issues between the variables. Ont the other hand, additional significant variable resulted in a better model.
+The remaining models, on the other hand, are generally very similar to each other and indicated the reproducibility of the results. Naturally, they slightly differed on the individual levels, in particular, after adding a significant variable, some coefficients changed due to the correlation issues between the variables. On the other hand, the additional significant variable resulted in a better model.
 
 Worth noticing is also that for some variables, such as *School_enrollment* or *Unsentenced*, all models indicated nearly identical estimates and their deviations.
 
 
 ## Verification of hypotheses
 
-Certainly, it is not enough just to compare models, significant variables or coefficients. Therefore, let us now check whether these models have common conclusions regarding the hypotheses. For this reason, we have prepared the following table indicating whether a given model confirms the hypothesis (`T`) or whether it is not possible to infer its correctness based on this model (` F`).
+Certainly, it is not enough just to compare models, significant variables, or coefficients. Therefore, let us now check whether these models have common conclusions regarding the hypotheses. For this reason, we have prepared the following table indicating whether a given model confirms the hypothesis (`T`) or whether it is not possible to infer its correctness based on this model (` F`).
 
 ```{r, echo=F}
 hyp <- data.frame(H = c("income inequality", "GDP per capita", "the level of education (basic)",
@@ -1352,7 +1376,7 @@ hyp %>%
 
 It is easy to notice that all three models estimated in our reproducible analysis (i.e. reproduction and two replication models) have exactly the same inference for hypotheses. However, some of these results are not confirmed in drawing conclusions based on the model from the bachelor thesis. Nevertheless, for the same method of filling in the missing data, the estimated models gave us almost the same results, and certainly the same conclusions, even when extending the number of observations and the set of independent variables.
 
-Therefore, the results of our project illustrates very well how important it is to properly prepare the database and precisely fill in the missing data. We believe that this was the main reason for the significant discrepancy in results. 
+Therefore, the results of our project illustrate very well how important it is to properly prepare the database and precisely fill in the missing data. We believe that this was the main reason for the significant discrepancy in results. 
 
 It is very interesting and we are honestly glad that we obtained something different in our reproducible project than in the original work.
 
